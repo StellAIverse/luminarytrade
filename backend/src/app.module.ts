@@ -2,6 +2,15 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { SimulatorModule } from './simulator/simulator.module';
 
+export class AppModule {}
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bull';
+import { SubmitterModule } from './submitter/submitter.module';
+import { ComputeBridgeModule } from './compute-bridge/compute-bridge.module';
+import { AgentModule } from './agent/agent.module';
+import { AuditLogModule } from './audit/audit-log.module';
+
 @Module({
   imports: [SimulatorModule],
   controllers: [AppController],
@@ -31,6 +40,9 @@ export class AppModule {}
     ComputeBridgeModule,
     AgentModule,
     AuditLogModule,
+    SimulatorModule
   ],
+  controllers: [AppController],
+
 })
 export class AppModule {}
