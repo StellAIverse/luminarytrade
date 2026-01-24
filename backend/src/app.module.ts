@@ -10,9 +10,10 @@ import { SubmitterModule } from './submitter/submitter.module';
 import { ComputeBridgeModule } from './compute-bridge/compute-bridge.module';
 import { AgentModule } from './agent/agent.module';
 import { AuditLogModule } from './audit/audit-log.module';
+import { OracleModule } from './oracle/oracle.module';
 
 @Module({
-  imports: [SimulatorModule],
+  imports: [SimulatorModule, OracleModule],
   controllers: [AppController],
 })
 export class AppModule {}
