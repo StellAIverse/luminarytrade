@@ -11,6 +11,16 @@ pub enum DataKey {
     UsedAttestation(BytesN<32>),
 }
 
+#[contracttype]
+#[derive(Clone)]
+pub struct Attestation {
+    pub agent: Address,
+    pub new_level: u32,
+    pub stake_amount: i128,
+    pub attestation_hash: BytesN<32>, // unique ID / replay protection
+}
+
+
 use soroban_sdk::{contract, contractimpl, Env};
 
 #[contract]
@@ -182,7 +192,52 @@ impl CommonUtilsContract {
         actions.push_back(timestamp);
         env.storage().temporary().set(&key, &actions);
     }
+    
 }
+
+#[contractimpl]
+impl EvolutionManager {
+    pub fn apply_attestation(env: Env, attestation: Attestation, signature: BytesN<64>) {
+        // 1. Check attestation not replayed
+        if env.storage().has(&DataKey::UsedAttestation(attestation.attestation_hash.clone())) {
+            panic!("Attestation already used");
+        }
+
+        // 2. Verify signature from trusted bridge
+        let bridge: Address = env
+            .storage()
+            .get(&DataKey::TrustedBridge)
+            .expect("Trusted bridge not set")
+            .unwrap();
+
+        // TODO: implement verify_sig call using bridge and attestation
+        // env.verify_sig(attestation_serialized, signature, bridge);
+
+        // 3. Update agent stake
+        let prev_stake: i128 = env.storage().get(&DataKey::AgentStake(attestation.agent.clone())).unwrap_or(0);
+        env.storage().set(
+            &DataKey::AgentStake(attestation.agent.clone()),
+            &(prev_stake + attestation.stake_amount),
+        );
+
+        // 4. Update evolution level
+        env.storage().set(&DataKey::AgentLevel(attestation.agent.clone()), &attestation.new_level);
+
+        // 5. Mark attestation as used
+        env.storage().set(&DataKey::UsedAttestation(attestation.attestation_hash.clone()), &true);
+
+        // 6. Emit event
+        Self::emit_evolution_completed(
+            env,
+            attestation.agent,
+            attestation.new_level,
+            prev_stake + attestation.stake_amount,
+            attestation.attestation_hash,
+        );
+    }
+}
+
+
 
 #[cfg(test)]
 mod test {
@@ -268,4 +323,17 @@ mod test {
         });
         assert!(result.is_err());
     }
+
+   
+
+    #[test]
+    fn test_init() {
+        let env = Env::default();
+        let admin = Address::random(&env);
+        EvolutionManager::init(env.clone(), admin.clone());
+        let stored_admin: Address = env.storage().get(&DataKey::Admin).unwrap().unwrap();
+        assert_eq!(stored_admin, admin);
+    }
+
+
 }
