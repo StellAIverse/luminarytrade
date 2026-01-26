@@ -3,6 +3,11 @@
 pub mod oracle_bridge;
 pub mod marketplace_types;
 pub mod marketplace;
+pub mod upgrade_registry;
+pub mod upgrade_proxy;
+pub mod example_impl;
+pub mod example_impl_v2;
+pub mod upgrade_integration_tests;
 
 use soroban_sdk::{
     contract, contractimpl, panic_with_error, Symbol, Address, Env, Bytes, Vec, 
