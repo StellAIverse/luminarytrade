@@ -1,7 +1,19 @@
+[workspace]
+resolver = "2"
+members = [
+  ".",
+]
+
+[workspace.dependencies]
+soroban-sdk = "22.0.0"
+
 [package]
-name = "common-utils"
+name = "agent-metadata"
 version = "0.1.0"
 edition = "2021"
+authors = ["ChenAIKit Team"]
+license = "MIT"
+description = "Library for validating and parsing agent metadata (JSON CID validation, hash checks)"
 
 [lib]
 crate-type = ["cdylib"]
@@ -12,14 +24,9 @@ soroban-sdk = { workspace = true }
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
 
-[workspace]
-resolver = "2"
-members = [
-  ".",
-]
-
-[workspace.dependencies]
-soroban-sdk = "22.0.0"
+[features]
+default = []
+testutils = ["soroban-sdk/testutils"]
 
 [profile.release]
 opt-level = "z"

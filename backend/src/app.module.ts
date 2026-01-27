@@ -1,4 +1,8 @@
 import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { SimulatorModule } from './simulator/simulator.module';
+
+export class AppModule {}
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
@@ -9,6 +13,10 @@ import { AuditLogModule } from './audit/audit-log.module';
 import { WorkerModule } from './worker/worker.module';
 
 @Module({
+  imports: [SimulatorModule, OracleModule],
+  controllers: [AppController],
+})
+export class AppModule {}
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -35,5 +43,7 @@ import { WorkerModule } from './worker/worker.module';
     AuditLogModule,
     WorkerModule,
   ],
+  controllers: [AppController],
+
 })
 export class AppModule { }
