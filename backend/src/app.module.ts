@@ -8,11 +8,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { SubmitterModule } from './submitter/submitter.module';
 import { ComputeBridgeModule } from './compute-bridge/compute-bridge.module';
-import { AgentModule } from './agent/agent.module';
+import { IndexerModule } from './agent/agent.module';
 import { AuditLogModule } from './audit/audit-log.module';
+import { WorkerModule } from './worker/worker.module';
 
 @Module({
-  imports: [SimulatorModule],
+  imports: [SimulatorModule, OracleModule],
   controllers: [AppController],
 })
 export class AppModule {}
@@ -38,11 +39,11 @@ export class AppModule {}
     }),
     SubmitterModule,
     ComputeBridgeModule,
-    AgentModule,
+    IndexerModule,
     AuditLogModule,
-    SimulatorModule
+    WorkerModule,
   ],
   controllers: [AppController],
 
 })
-export class AppModule {}
+export class AppModule { }
