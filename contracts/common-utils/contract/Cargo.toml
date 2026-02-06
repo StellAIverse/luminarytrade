@@ -1,9 +1,28 @@
 [package]
 name = "common-utils"
 version = "0.1.0"
+<<<<<<< HEAD
 description = "Common utilities and helper functions for ChenAIKit contracts"
 authors = ["ChenAIKit Team"]
 edition = "2021"
+=======
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+
+[workspace]
+resolver = "2"
+members = [
+  ".",
+]
+>>>>>>> 81b53c80d2e61683b492c98783cb94e79baeaa16
 
 [lib]
 crate-type = ["cdylib"]
