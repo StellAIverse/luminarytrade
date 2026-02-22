@@ -108,3 +108,4 @@ impl RiskEvaluationContract {
             .get(&DataKey::Risk(agent))
     }
 }
+
