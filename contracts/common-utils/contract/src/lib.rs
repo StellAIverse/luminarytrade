@@ -25,8 +25,41 @@ pub struct Attestation {
     pub agent: Address,
     pub new_level: u32,
     pub stake_amount: i128,
-    pub attestation_hash: BytesN<32>,
+    pub attestation_hash: BytesN<32>, // unique ID / replay protection
 }
+
+
+use soroban_sdk::{contract, contractimpl, Env};
+
+#[contract]
+pub struct EvolutionManager;
+
+#[contractimpl]
+impl EvolutionManager {
+    pub fn emit_evolution_completed(
+        env: Env,
+        agent: Address,
+        new_level: u32,
+        total_stake: i128,
+        attestation_hash: BytesN<32>,
+    ) {
+        env.events().publish(
+            ("EvolutionCompleted",),
+            (agent, new_level, total_stake, attestation_hash),
+        );
+    }
+}
+
+
+use soroban_sdk::{
+    contract, contractimpl, panic_with_error, Symbol, Address, Env, Bytes, Vec, 
+    contracterror, contracttype,
+};
+
+pub use storage::{
+    IStorageKey, InstanceStorageRepository, PersistentStorageRepository,
+    StorageRepository, TemporaryStorageRepository,
+};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
