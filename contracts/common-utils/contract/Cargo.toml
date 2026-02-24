@@ -17,6 +17,7 @@ soroban-sdk = "20.5.0"
 
 [dev-dependencies]
 soroban-sdk = { version = "20.5.0", features = ["testutils"] }
+stellar-xdr = "21.0.0"
 
 [profile.release]
 opt-level = "z"
