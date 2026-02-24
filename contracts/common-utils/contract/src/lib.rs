@@ -6,6 +6,17 @@ pub mod marketplace_types;
 pub mod oracle_bridge;
 pub mod timelock;
 pub mod validator;
+pub mod authorization;
+pub mod authorization_macro;
+pub mod compression;
+pub mod storage_optimization;
+pub mod data_migration;
+pub mod storage_monitoring;
+
+#[cfg(test)]
+mod authorization_tests;
+#[cfg(test)]
+mod compression_tests;
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, panic_with_error, Address, Bytes, BytesN,
