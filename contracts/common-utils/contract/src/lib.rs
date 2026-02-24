@@ -1,9 +1,10 @@
 #![no_std]
 
 pub mod error;
-pub mod oracle_bridge;
-pub mod marketplace_types;
 pub mod marketplace;
+pub mod marketplace_types;
+pub mod oracle_bridge;
+pub mod timelock;
 pub mod validator;
 pub mod authorization;
 pub mod authorization_macro;
@@ -18,17 +19,8 @@ mod authorization_tests;
 mod compression_tests;
 
 use soroban_sdk::{
-    contract,
-    contractimpl,
-    panic_with_error,
-    Symbol,
-    Address,
-    Env,
-    Bytes,
-    Vec,
-    contracterror,
-    contracttype,
-    BytesN,
+    contract, contracterror, contractimpl, contracttype, panic_with_error, Address, Bytes, BytesN,
+    Env, Symbol, Vec,
 };
 
 #[contracttype]
@@ -49,47 +41,110 @@ pub struct Attestation {
     pub attestation_hash: BytesN<32>, // unique ID / replay protection
 }
 
-use soroban_sdk::{ contract, contractimpl, Env };
+#[macro_export]
+macro_rules! storage_log {
+    ($env:expr, $op:expr, $key:expr) => {
+        // Optional logging for storage operations
+    };
+}
 
-#[contract]
-pub struct EvolutionManager;
+pub trait IStorageKey:
+    soroban_sdk::IntoVal<Env, soroban_sdk::Val> + soroban_sdk::TryFromVal<Env, soroban_sdk::Val>
+{
+}
+impl<
+        T: soroban_sdk::IntoVal<Env, soroban_sdk::Val>
+            + soroban_sdk::TryFromVal<Env, soroban_sdk::Val>,
+    > IStorageKey for T
+{
+}
 
-#[contractimpl]
-impl EvolutionManager {
-    pub fn emit_evolution_completed(
-        env: Env,
-        agent: Address,
-        new_level: u32,
-        total_stake: i128,
-        attestation_hash: BytesN<32>
-    ) {
-        env.events().publish(
-            ("EvolutionCompleted",),
-            (agent, new_level, total_stake, attestation_hash)
-        );
+pub trait StorageRepository<K: IStorageKey> {
+    fn set<V>(&self, key: &K, value: &V)
+    where
+        V: soroban_sdk::IntoVal<Env, soroban_sdk::Val>;
+    fn get<V>(&self, key: &K) -> Option<V>
+    where
+        V: soroban_sdk::TryFromVal<Env, soroban_sdk::Val>;
+    fn remove(&self, key: &K);
+    fn has(&self, key: &K) -> bool;
+    fn extend_ttl(&self, key: &K, threshold: u32, extend_to: u32);
+}
+
+pub struct InstanceStorageRepository {
+    env: Env,
+}
+pub struct PersistentStorageRepository {
+    env: Env,
+}
+
+pub mod temporary;
+pub use temporary::TemporaryStorageRepository;
+
+impl InstanceStorageRepository {
+    pub fn new(env: Env) -> Self {
+        Self { env }
+    }
+}
+impl PersistentStorageRepository {
+    pub fn new(env: Env) -> Self {
+        Self { env }
     }
 }
 
-use soroban_sdk::{
-    contract,
-    contractimpl,
-    panic_with_error,
-    Symbol,
-    Address,
-    Env,
-    Bytes,
-    Vec,
-    contracterror,
-    contracttype,
-};
+impl<K: IStorageKey> StorageRepository<K> for InstanceStorageRepository {
+    fn set<V>(&self, key: &K, value: &V)
+    where
+        V: soroban_sdk::IntoVal<Env, soroban_sdk::Val>,
+    {
+        self.env.storage().instance().set(key, value);
+    }
+    fn get<V>(&self, key: &K) -> Option<V>
+    where
+        V: soroban_sdk::TryFromVal<Env, soroban_sdk::Val>,
+    {
+        self.env.storage().instance().get(key)
+    }
+    fn remove(&self, key: &K) {
+        self.env.storage().instance().remove(key);
+    }
+    fn has(&self, key: &K) -> bool {
+        self.env.storage().instance().has(key)
+    }
+    fn extend_ttl(&self, key: &K, threshold: u32, extend_to: u32) {
+        self.env
+            .storage()
+            .instance()
+            .extend_ttl(key, threshold, extend_to);
+    }
+}
 
-pub use storage::{
-    IStorageKey,
-    InstanceStorageRepository,
-    PersistentStorageRepository,
-    StorageRepository,
-    TemporaryStorageRepository,
-};
+impl<K: IStorageKey> StorageRepository<K> for PersistentStorageRepository {
+    fn set<V>(&self, key: &K, value: &V)
+    where
+        V: soroban_sdk::IntoVal<Env, soroban_sdk::Val>,
+    {
+        self.env.storage().persistent().set(key, value);
+    }
+    fn get<V>(&self, key: &K) -> Option<V>
+    where
+        V: soroban_sdk::TryFromVal<Env, soroban_sdk::Val>,
+    {
+        self.env.storage().persistent().get(key)
+    }
+    fn remove(&self, key: &K) {
+        self.env.storage().persistent().remove(key);
+    }
+    fn has(&self, key: &K) -> bool {
+        self.env.storage().persistent().has(key)
+    }
+    fn extend_ttl(&self, key: &K, threshold: u32, extend_to: u32) {
+        self.env
+            .storage()
+            .persistent()
+            .extend_ttl(key, threshold, extend_to);
+    }
+}
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -139,8 +194,12 @@ const RATE_LIMIT_MAX: u32 = 10;
 impl CommonUtilsContract {
     /// Initialize contract with admin.
     pub fn initialize(env: Env, admin: Address) {
-        env.storage().persistent().set(&Symbol::new(&env, "admin"), &admin);
-        env.storage().persistent().set(&Symbol::new(&env, "exec_cnt"), &0u64);
+        env.storage()
+            .persistent()
+            .set(&Symbol::new(&env, "admin"), &admin);
+        env.storage()
+            .persistent()
+            .set(&Symbol::new(&env, "exec_cnt"), &0u64);
     }
 
     /// Submit an agent action.
@@ -173,13 +232,15 @@ impl CommonUtilsContract {
         }
 
         env.storage().persistent().set(&execution_key, &execution);
-        env.storage().persistent().set(&Symbol::new(&env, "exec_cnt"), &execution_id);
+        env.storage()
+            .persistent()
+            .set(&Symbol::new(&env, "exec_cnt"), &execution_id);
 
         Self::update_rate_limit(&env, &agent, timestamp);
 
         env.events().publish(
             (Symbol::new(&env, "act_sub"),),
-            (execution_id, agent, action_type, timestamp)
+            (execution_id, agent, action_type, timestamp),
         );
 
         execution_id
@@ -191,7 +252,10 @@ impl CommonUtilsContract {
     }
 
     pub fn admin(env: Env) -> Address {
-        env.storage().persistent().get(&Symbol::new(&env, "admin")).unwrap()
+        env.storage()
+            .persistent()
+            .get(&Symbol::new(&env, "admin"))
+            .unwrap()
     }
 
     fn check_rate_limit(env: &Env, agent: &Address) {
@@ -230,14 +294,17 @@ impl EvolutionManager {
         agent: Address,
         new_level: u32,
         total_stake: i128,
-        attestation_hash: BytesN<32>
+        attestation_hash: BytesN<32>,
     ) {
         env.events().publish(
             ("EvolutionCompleted",),
-            (agent, new_level, total_stake, attestation_hash)
+            (agent, new_level, total_stake, attestation_hash),
         );
     }
 }
 
 #[cfg(test)]
 mod test_marketplace;
+
+#[cfg(test)]
+mod timelock_tests;

@@ -56,9 +56,22 @@ impl FraudDetectContract {
         Vec::new(&_env)
     }
 
-    /// Update fraud detection model
-    pub fn update_model(_env: Env, _model_data: String) {
-        // TODO: Implement model updates
+    /// Update fraud detection model (Admin only)
+    pub fn update_model(env: Env, model_data: Bytes) -> Result<(), AuthorizationError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(AuthorizationError::NotInitialized)?;
+        admin.require_auth();
+
+        // TODO: Actually implement model logic if needed
+        env.events().publish(
+            (symbol_short!("mdl_upd"),),
+            (env.ledger().timestamp(), model_data),
+        );
+        Ok(())
+    }
 
     /// Initialize the fraud detection contract with an administrator
     pub fn initialize(env: Env, admin: Address) -> Result<(), StateError> {
@@ -70,32 +83,30 @@ impl FraudDetectContract {
     }
 
     /// Add an approved reporter (Admin only)
-    pub fn add_reporter(env: Env, admin: Address, reporter: Address) -> Result<(), AuthorizationError> {
-        let auth = Self::get_auth(&env);
-        check_authorization!(auth, &env, &admin, permission!(Admin));
-        
-        // Grant reporter role using the role auth directly
-        let role_auth = RoleBasedAuth::new(
-            Symbol::new(&env, "admin"), 
-            Symbol::new(&env, "role")
-        );
-        role_auth.set_role(&env, &reporter, &permission!(Reporter), true);
-        
+    pub fn add_reporter(env: Env, reporter: Address) -> Result<(), AuthorizationError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(AuthorizationError::NotInitialized)?;
+        admin.require_auth();
+        env.storage()
+            .instance()
+            .set(&DataKey::Reporter(reporter), &true);
         Ok(())
     }
 
     /// Remove an approved reporter (Admin only)
-    pub fn remove_reporter(env: Env, admin: Address, reporter: Address) -> Result<(), AuthorizationError> {
-        let auth = Self::get_auth(&env);
-        check_authorization!(auth, &env, &admin, permission!(Admin));
-        
-        // Revoke reporter role using the role auth directly
-        let role_auth = RoleBasedAuth::new(
-            Symbol::new(&env, "admin"), 
-            Symbol::new(&env, "role")
-        );
-        role_auth.set_role(&env, &reporter, &permission!(Reporter), false);
-        
+    pub fn remove_reporter(env: Env, reporter: Address) -> Result<(), AuthorizationError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(AuthorizationError::NotInitialized)?;
+        admin.require_auth();
+        env.storage()
+            .instance()
+            .remove(&DataKey::Reporter(reporter));
         Ok(())
     }
 
@@ -229,62 +240,6 @@ impl FraudDetectContract {
         if env.storage().instance().has(&DataKey::MigrationState) {
             return Err(ContractError::InvalidState);
         }
-        
-        // Get all agent IDs with reports
-        let agent_ids = Self::get_all_agent_ids(&env);
-        
-        if agent_ids.is_empty() {
-            return Ok(0); // No data to migrate
-        }
-        
-        // Configure migration
-        let config = MigrationConfig {
-            batch_size: 10,
-            max_retries: 3,
-            rollback_enabled: true,
-            validation_enabled: true,
-            compression_type: CompressionType::DeltaEncoding,
-            dry_run: false,
-        };
-        
-        // Start migration
-        let migration_id = DataMigrationManager::start_migration(&env, &config, &agent_ids)?;
-        
-        // Mark migration as in progress
-        env.storage().instance().set(&DataKey::MigrationState, &migration_id);
-        
-        // Execute migration
-        DataMigrationManager::execute_migration(&env, migration_id)?;
-        
-        // Clean up old uncompressed data
-        Self::cleanup_uncompressed_data(&env, &agent_ids)?;
-        
-        // Clear migration state
-        env.storage().instance().remove(&DataKey::MigrationState);
-        
-        Ok(migration_id)
-    }
-    
-    /// Get storage efficiency report
-    pub fn get_efficiency_report(env: Env) -> Result<common_utils::storage_monitoring::StorageEfficiencyReport, ContractError> {
-        let report = common_utils::storage_monitoring::EfficiencyAnalyzer::analyze_efficiency(&env)?;
-        Ok(report)
-    }
-    
-    /// Get all agent IDs that have reports
-    fn get_all_agent_ids(env: &Env) -> Vec<Symbol> {
-        // This is a simplified implementation
-        // In practice, you'd maintain an index of all agent IDs
-        Vec::new(env)
-    }
-    
-    /// Clean up uncompressed data after migration
-    fn cleanup_uncompressed_data(env: &Env, agent_ids: &Vec<Symbol>) -> Result<(), ContractError> {
-        for agent_id in agent_ids.iter() {
-            let old_key = DataKey::Reports(agent_id.clone());
-            env.storage().instance().remove(&old_key);
-        }
-        Ok(())
     }
 }
 
