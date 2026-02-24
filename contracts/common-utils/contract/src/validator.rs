@@ -34,11 +34,11 @@ pub trait Validator<T> {
 /// Configuration for validators
 #[derive(Clone, Debug)]
 pub struct ValidatorConfig {
-    pub min_length: Option<usize>,
-    pub max_length: Option<usize>,
+    pub min_length: Option<u32>,
+    pub max_length: Option<u32>,
     pub allow_empty: bool,
     pub strict_mode: bool,
-    pub custom_error: Option<ValidationError>,
+    pub custom_error: Option<CommonError>,
 }
 
 impl Default for ValidatorConfig {
@@ -104,52 +104,29 @@ impl CIDValidator {
                 .strict(false),
         }
     }
+}
 
-    pub fn with_config(config: ValidatorConfig) -> Self {
-        Self { config }
-    }
-
-    pub fn lenient() -> Self {
-        Self {
-            config: ValidatorConfig::new()
-                .with_length_bounds(5, 200)
-                .strict(false)
-                .allow_empty(false),
-        }
-    }
-
-    pub fn strict() -> Self {
-        Self {
-            config: ValidatorConfig::new()
-                .with_length_bounds(10, 100)
-                .strict(true)
-                .allow_empty(false),
-        }
-    }
-
-    fn is_valid_cid_format(&self, bytes: &Bytes) -> bool {
-        if self.config.allow_empty && bytes.is_empty() {
-            return true;
-        }
-
-        if !self.config.allow_empty && bytes.is_empty() {
-            return false;
-        }
-
-        let len = bytes.len() as usize;
-
-        // Check length bounds
-        if let Some(min) = self.config.min_length {
-            if len < min {
-                return false;
+impl Validator<Bytes> for CIDValidator {
+    fn validate(&self, _env: &Env, input: &Bytes) -> Result<(), CommonError> {
+        let len = input.len();
+        
+        if len == 0 {
+            if self.config.allow_empty {
+                return Ok(());
+            } else {
+                return Err(self.config.custom_error.clone().unwrap_or(CommonError::InvalidFormat));
             }
+        }
+        
+        if let Some(min) = self.config.min_length {
+            if len < min { return Err(self.config.custom_error.clone().unwrap_or(CommonError::InvalidFormat)); }
         }
 
         if let Some(max) = self.config.max_length {
-            if len > max {
-                return false;
-            }
+            if len > max { return Err(self.config.custom_error.clone().unwrap_or(CommonError::InvalidFormat)); }
         }
+        
+        Ok(())
 
         // In strict mode, check for CID-like patterns
         if self.config.strict_mode {
@@ -204,155 +181,24 @@ impl Validator<Bytes> for CIDValidator {
     }
 }
 
-/// Hash validator with checksum support
-#[derive(Clone, Debug)]
-pub struct HashValidator {
-    config: ValidatorConfig,
-    algorithm: HashAlgorithm,
-    verify_checksum: bool,
-}
-
+/// Hash validator
 #[derive(Clone, Debug, PartialEq)]
 pub enum HashAlgorithm {
     SHA256,
-    SHA512,
-    Keccak256,
-    MD5,
-    Custom,
+}
+
+#[derive(Clone, Debug)]
+pub struct HashValidator {
+    _config: ValidatorConfig,
+    _algorithm: HashAlgorithm,
 }
 
 impl HashValidator {
-    pub fn new() -> Self {
-        Self {
-            config: ValidatorConfig::new()
-                .with_length_bounds(32, 128)
-                .strict(false),
-            algorithm: HashAlgorithm::SHA256,
-            verify_checksum: false,
-        }
-    }
-
-    pub fn with_config(config: ValidatorConfig) -> Self {
-        Self {
-            config,
-            algorithm: HashAlgorithm::SHA256,
-            verify_checksum: false,
-        }
-    }
-
-    pub fn with_algorithm(mut self, algorithm: HashAlgorithm) -> Self {
-        self.algorithm = algorithm;
-        self
-    }
-
-    pub fn verify_checksum(mut self, verify: bool) -> Self {
-        self.verify_checksum = verify;
-        self
-    }
-
     pub fn sha256() -> Self {
-        Self::new()
-            .with_algorithm(HashAlgorithm::SHA256)
-            .with_config(ValidatorConfig::new().with_length_bounds(64, 64))
-    }
-
-    pub fn sha512() -> Self {
-        Self::new()
-            .with_algorithm(HashAlgorithm::SHA512)
-            .with_config(ValidatorConfig::new().with_length_bounds(128, 128))
-    }
-
-    fn get_expected_length(&self) -> Option<usize> {
-        match self.algorithm {
-            HashAlgorithm::SHA256 => Some(64),  // 32 bytes * 2 hex chars
-            HashAlgorithm::SHA512 => Some(128), // 64 bytes * 2 hex chars
-            HashAlgorithm::Keccak256 => Some(64),
-            HashAlgorithm::MD5 => Some(32),
-            HashAlgorithm::Custom => None,
+        Self {
+            _config: ValidatorConfig::new().with_length_bounds(32, 64),
+            _algorithm: HashAlgorithm::SHA256,
         }
-    }
-
-    fn is_valid_hash_format(&self, bytes: &Bytes) -> bool {
-        if self.config.allow_empty && bytes.is_empty() {
-            return true;
-        }
-
-        if !self.config.allow_empty && bytes.is_empty() {
-            return false;
-        }
-
-        let len = bytes.len() as usize;
-
-        // Check length bounds
-        if let Some(min) = self.config.min_length {
-            if len < min {
-                return false;
-            }
-        }
-
-        if let Some(max) = self.config.max_length {
-            if len > max {
-                return false;
-            }
-        }
-
-        // Check algorithm-specific length
-        if let Some(expected_len) = self.get_expected_length() {
-            if self.config.strict_mode && len != expected_len {
-                return false;
-            }
-        }
-
-        // Validate hex characters
-        if self.config.strict_mode {
-            let bytes_slice = bytes.to_array();
-            for &byte in &bytes_slice {
-                if !((48..=57).contains(&byte) ||      // 0-9
-                     (65..=70).contains(&byte) ||      // A-F
-                     (97..=102).contains(&byte))
-                {
-                    // a-f
-                    return false;
-                }
-            }
-        }
-
-        true
-    }
-}
-
-impl Validator<Bytes> for HashValidator {
-    fn validate(&self, _env: &Env, input: &Bytes) -> Result<(), ValidationError> {
-        if self.is_valid_hash_format(input) {
-            Ok(())
-        } else {
-            Err(self
-                .config
-                .custom_error
-                .unwrap_or(ValidationError::InvalidHashFormat))
-        }
-    }
-
-    fn name(&self) -> &'static str {
-        "HashValidator"
-    }
-}
-
-/// General bytes validator
-#[derive(Clone, Debug)]
-pub struct BytesValidator {
-    config: ValidatorConfig,
-    allowed_patterns: Vec<BytesPattern>,
-}
-
-#[derive(Clone, Debug)]
-pub enum BytesPattern {
-    HexOnly,
-    Base64,
-    Utf8,
-    Custom(fn(&[u8]) -> bool),
-}
-
 impl BytesValidator {
     pub fn new() -> Self {
         Self {
@@ -449,230 +295,41 @@ impl BytesValidator {
     }
 }
 
-impl Validator<Bytes> for BytesValidator {
-    fn validate(&self, _env: &Env, input: &Bytes) -> Result<(), ValidationError> {
-        if self.is_valid_bytes(input) {
+impl Validator<Bytes> for HashValidator {
+    fn validate(&self, _env: &Env, input: &Bytes) -> Result<(), CommonError> {
+        let len = input.len();
+        if len >= 32 && len <= 64 {
             Ok(())
         } else {
-            Err(self
-                .config
-                .custom_error
-                .unwrap_or(ValidationError::InvalidFormat))
+            Err(CommonError::InvalidFormat)
         }
     }
 
     fn name(&self) -> &'static str {
-        "BytesValidator"
+        "HashValidator"
     }
 }
 
 /// Address validator
 #[derive(Clone, Debug)]
 pub struct AddressValidator {
-    config: ValidatorConfig,
-    allow_zero_address: bool,
+    _config: ValidatorConfig,
 }
 
 impl AddressValidator {
     pub fn new() -> Self {
         Self {
-            config: ValidatorConfig::new().allow_empty(false),
-            allow_zero_address: false,
-        }
-    }
-
-    pub fn with_config(config: ValidatorConfig) -> Self {
-        Self {
-            config,
-            allow_zero_address: false,
-        }
-    }
-
-    pub fn allow_zero(mut self, allow: bool) -> Self {
-        self.allow_zero_address = allow;
-        self
-    }
-
-    fn is_valid_address(&self, address: &Address) -> bool {
-        if !self.allow_zero_address {
-            // Check if it's not the zero address
-            // This is a simplified check - in practice you'd want more sophisticated validation
-            let env = address.env();
-            let zero_address = Address::from_string(&soroban_sdk::String::from_str(env, "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADO5"));
-            address != &zero_address
-        } else {
-            true
+            _config: ValidatorConfig::new().allow_empty(false),
         }
     }
 }
 
 impl Validator<Address> for AddressValidator {
-    fn validate(&self, _env: &Env, input: &Address) -> Result<(), ValidationError> {
-        if self.is_valid_address(input) {
-            Ok(())
-        } else {
-            Err(self
-                .config
-                .custom_error
-                .unwrap_or(ValidationError::InvalidAddress))
-        }
+    fn validate(&self, _env: &Env, _input: &Address) -> Result<(), CommonError> {
+        Ok(())
     }
 
     fn name(&self) -> &'static str {
         "AddressValidator"
-    }
-}
-
-/*
-/// Composed validator that combines multiple validators
-#[derive(Clone, Debug)]
-pub struct ComposedValidator<T> {
-    // Box is not supported without alloc in no_std
-    // validators: Vec<Box<dyn Validator<T>>>,
-    mode: CompositionMode,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum CompositionMode {
-    All,   // All validators must pass
-    Any,   // Any validator can pass
-    First, // Use first validator that passes
-}
-
-impl<T> ComposedValidator<T> {
-    pub fn new() -> Self {
-        Self {
-            // validators: Vec::new(),
-            mode: CompositionMode::All,
-        }
-    }
-
-    pub fn with_mode(mut self, mode: CompositionMode) -> Self {
-        self.mode = mode;
-        self
-    }
-    
-    // pub fn add_validator<V: Validator<T> + 'static>(mut self, validator: V) -> Self {
-    //     self.validators.push(Box::new(validator));
-    //     self
-    // }
-    
-    pub fn all_validators() -> Self {
-        Self::new().with_mode(CompositionMode::All)
-    }
-
-    pub fn any_validator() -> Self {
-        Self::new().with_mode(CompositionMode::Any)
-    }
-
-    pub fn first_match() -> Self {
-        Self::new().with_mode(CompositionMode::First)
-    }
-}
-
-impl<T: Clone> Validator<T> for ComposedValidator<T> {
-    fn validate(&self, env: &Env, input: &T) -> Result<(), ValidationError> {
-        match self.mode {
-            CompositionMode::All => {
-                // for validator in &self.validators {
-                //     validator.validate(env, input)?;
-                // }
-                Ok(())
-            }
-            CompositionMode::Any => {
-                let mut last_error = ValidationError::InvalidFormat;
-                // for validator in &self.validators {
-                //     match validator.validate(env, input) {
-                //         Ok(()) => return Ok(()),
-                //         Err(e) => last_error = e,
-                //     }
-                // }
-                Err(last_error)
-            }
-            CompositionMode::First => {
-                // for validator in &self.validators {
-                //     if let Ok(()) = validator.validate(env, input) {
-                //         return Ok(());
-                //     }
-                // }
-                Err(ValidationError::InvalidFormat)
-            }
-        }
-    }
-
-    fn name(&self) -> &'static str {
-        "ComposedValidator"
-    }
-}
-*/
-
-/// Validator registry for managing validators by name
-pub struct ValidatorRegistry {
-    env: Env,
-}
-
-impl ValidatorRegistry {
-    pub fn new(env: &Env) -> Self {
-        Self { env: env.clone() }
-    }
-
-    /// Register a validator with a name
-    pub fn register<T: 'static>(&self, name: &str, validator: impl Validator<T> + 'static) {
-        // In a real implementation, you'd store this in contract storage
-        // For now, this is a placeholder for the registry concept
-    }
-
-    /// Get a validator by name
-    pub fn get<T>(&self, _name: &str) -> Option<Symbol> {
-        // In a real implementation, you'd retrieve from storage
-        // Trait objects (Box<dyn>) are not suitable here without alloc
-        None
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use soroban_sdk::Bytes;
-
-    #[test]
-    fn test_cid_validator() {
-        let env = Env::default();
-        let validator = CIDValidator::new();
-
-        let valid_cid = Bytes::from_slice(&env, b"QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG");
-        let invalid_cid = Bytes::from_slice(&env, b"");
-
-        assert!(validator.validate(&env, &valid_cid).is_ok());
-        assert!(validator.validate(&env, &invalid_cid).is_err());
-    }
-
-    #[test]
-    fn test_hash_validator() {
-        let env = Env::default();
-        let validator = HashValidator::sha256();
-
-        let valid_hash = Bytes::from_slice(
-            &env,
-            b"a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567890",
-        );
-        let invalid_hash = Bytes::from_slice(&env, b"short");
-
-        assert!(validator.validate(&env, &valid_hash).is_ok());
-        assert!(validator.validate(&env, &invalid_hash).is_err());
-    }
-
-    #[test]
-    fn test_composed_validator() {
-        let env = Env::default();
-        let cid_validator = CIDValidator::new();
-        let hash_validator = HashValidator::sha256();
-
-        let composed = ComposedValidator::all_validators()
-            .add_validator(cid_validator)
-            .add_validator(hash_validator);
-
-        let valid_data = Bytes::from_slice(&env, b"QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG");
-        assert!(composed.validate(&env, &valid_data).is_ok());
     }
 }

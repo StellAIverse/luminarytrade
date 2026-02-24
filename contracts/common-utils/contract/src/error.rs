@@ -22,9 +22,9 @@ pub trait ContractError: core::fmt::Debug + Copy + Clone {
     /// Get the error code
     fn code(&self) -> u32;
 
-    /// Get the error message
-    fn message(&self) -> &'static str;
+use soroban_sdk::{contracterror, Symbol, Bytes, Env};
 
+/// Unified Contract Error Type
     /// Get error category
     fn category(&self) -> ErrorCategory;
 
@@ -54,123 +54,38 @@ pub enum ErrorCategory {
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
-pub enum ValidationError {
-    /// Invalid input format
+pub enum CommonError {
+    // Validation (1000+)
     InvalidFormat = 1001,
-    /// Missing required field
     MissingRequiredField = 1002,
-    /// Value out of range
     OutOfRange = 1003,
-    /// Invalid length
     InvalidLength = 1004,
-    /// Invalid format for CID
-    InvalidCidFormat = 1005,
-    /// Invalid hash format
-    InvalidHashFormat = 1006,
-    /// Invalid JSON structure
-    InvalidJsonStructure = 1007,
-    /// Invalid address format
-    InvalidAddress = 1008,
-    /// Invalid timestamp
-    InvalidTimestamp = 1009,
-    /// Invalid signature format
-    InvalidSignatureFormat = 1010,
-}
-
-impl ContractError for ValidationError {
-    fn code(&self) -> u32 {
-        *self as u32
-    }
-
-    fn message(&self) -> &'static str {
-        match self {
-            ValidationError::InvalidFormat => "Invalid input format",
-            ValidationError::MissingRequiredField => "Missing required field",
-            ValidationError::OutOfRange => "Value out of allowed range",
-            ValidationError::InvalidLength => "Invalid data length",
-            ValidationError::InvalidCidFormat => "Invalid CID format",
-            ValidationError::InvalidHashFormat => "Invalid hash format",
-            ValidationError::InvalidJsonStructure => "Invalid JSON structure",
-            ValidationError::InvalidAddress => "Invalid address format",
-            ValidationError::InvalidTimestamp => "Invalid or expired timestamp",
-            ValidationError::InvalidSignatureFormat => "Invalid signature format",
-        }
-    }
-
-    fn category(&self) -> ErrorCategory {
-        ErrorCategory::Validation
-    }
-
-    fn is_recoverable(&self) -> bool {
-        true
-    }
-}
-
-/// Authorization errors (1100-1199)
-#[contracterror]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-#[repr(u32)]
-pub enum AuthorizationError {
-    /// Not authorized
+    
+    // Authorization (1100+)
     NotAuthorized = 1101,
-    /// Invalid authentication
-    InvalidAuthentication = 1102,
-    /// Insufficient permissions
-    InsufficientPermissions = 1103,
-    /// Not an approved reporter
-    NotApprovedReporter = 1104,
-    /// Admin only operation
-    AdminOnly = 1105,
-    /// Authorization expired
-    AuthorizationExpired = 1106,
-    /// Invalid credentials
-    InvalidCredentials = 1107,
-    /// Account disabled
-    AccountDisabled = 1108,
-    /// Not initialized
     NotInitialized = 1109,
-    /// Already initialized
     AlreadyInitialized = 1110,
-}
-
-impl ContractError for AuthorizationError {
-    fn code(&self) -> u32 {
-        *self as u32
-    }
-
-    fn message(&self) -> &'static str {
-        match self {
-            AuthorizationError::NotAuthorized => "Not authorized to perform this action",
-            AuthorizationError::InvalidAuthentication => "Invalid authentication",
-            AuthorizationError::InsufficientPermissions => "Insufficient permissions",
-            AuthorizationError::NotApprovedReporter => "Not an approved reporter",
-            AuthorizationError::AdminOnly => "Admin only operation",
-            AuthorizationError::AuthorizationExpired => "Authorization expired",
-            AuthorizationError::InvalidCredentials => "Invalid credentials",
-            AuthorizationError::AccountDisabled => "Account is disabled",
-            AuthorizationError::NotInitialized => "Contract not initialized",
-            AuthorizationError::AlreadyInitialized => "Contract already initialized",
-        }
-    }
-
-    fn category(&self) -> ErrorCategory {
-        ErrorCategory::Authorization
-    }
-
-    fn is_recoverable(&self) -> bool {
-        matches!(self, AuthorizationError::AuthorizationExpired)
-    }
-}
-
-/// Storage errors (1200-1299)
-#[contracterror]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-#[repr(u32)]
-pub enum StorageError {
-    /// Key not found
+    
+    // Storage (1200+)
     KeyNotFound = 1201,
-    /// Storage full
     StorageFull = 1202,
+    
+    // Upgrade/Proxy (1300+)
+    RegistryNotSet = 1301,
+    ImplementationNotFound = 1302,
+    CallFailed = 1303,
+    UnauthorizedUpgrade = 1304,
+    
+    // Oracle/Bridge (1400+)
+    OracleAlreadyExists = 1401,
+    OracleNotFound = 1402,
+    RequestNotFound = 1403,
+    RequestAlreadyFulfilled = 1404,
+    
+    // Unknown
+    Unknown = 9999,
+}
+
     /// Data corruption detected
     DataCorruption = 1203,
     /// Invalid storage key
@@ -499,6 +414,7 @@ pub enum ContractErrorType {
 }
 
 /// Error context for providing additional information
+#[soroban_sdk::contracttype]
 #[derive(Clone, Debug)]
 pub struct ErrorContext {
     pub operation: Symbol,
@@ -509,9 +425,9 @@ pub struct ErrorContext {
 }
 
 impl ErrorContext {
-    pub fn new(operation: &str) -> Self {
+    pub fn new(env: &Env, operation: &str) -> Self {
         Self {
-            operation: Symbol::new(&Env::default(), operation),
+            operation: Symbol::new(env, operation),
             field: None,
             expected: None,
             actual: None,

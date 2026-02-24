@@ -6,15 +6,22 @@ pub mod marketplace_types;
 pub mod oracle_bridge;
 pub mod timelock;
 pub mod validator;
+pub mod storage;
+pub mod upgrade_registry;
+pub mod upgrade_proxy;
+pub mod migration;
+
+pub use error::CommonError;
 pub mod acl;
 
 use soroban_sdk::{
     contract,
     contractimpl,
-    panic_with_error,
-    Symbol,
     Address,
     Env,
+    BytesN,
+    contracttype,
+    symbol_short,
     Bytes,
     Vec,
     contracttype,
@@ -37,6 +44,7 @@ pub struct Attestation {
     pub agent: Address,
     pub new_level: u32,
     pub stake_amount: i128,
+    pub attestation_hash: BytesN<32>,
     pub attestation_hash: BytesN<32>, // unique ID / replay protection
 }
 

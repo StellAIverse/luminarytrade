@@ -1,7 +1,13 @@
+//! # Fraud Detection Contract
+//!
+//! Analyzes transactions for potential fraud and manages fraud reports.
+
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec,
+    contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec, Val, TryFromVal,
 };
+use common_utils::error::CommonError;
+use common_utils::migration::DataMigration;
 use common_utils::error::{AuthorizationError, StateError, ContractError};
 use common_utils::authorization::{IAuthorizable, RoleBasedAuth, Permission, PermissionCache, CachedAuth};
 use common_utils::{permission, auth, cached_auth, check_authorization};
@@ -33,6 +39,22 @@ pub struct FraudDetectContract;
 
 #[contractimpl]
 impl FraudDetectContract {
+    /// Initialize the fraud detection contract with an administrator
+    pub fn initialize(env: Env, admin: Address) -> Result<(), CommonError> {
+        if env.storage().instance().has(&DataKey::Admin) {
+            return Err(CommonError::AlreadyInitialized);
+        }
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        
+        env.events().publish(
+            (symbol_short!("init"),),
+            admin,
+        );
+        Ok(())
+    }
+
+    /// Add an approved reporter (Admin only)
+    pub fn add_reporter(env: Env, reporter: Address) -> Result<(), CommonError> {
     /// Initialize the fraud detection contract
     pub fn initialize(_env: Env) {
         // TODO: Implement contract initialization
@@ -62,7 +84,7 @@ impl FraudDetectContract {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or(AuthorizationError::NotInitialized)?;
+            .ok_or(CommonError::NotInitialized)?;
         admin.require_auth();
 
         // TODO: Actually implement model logic if needed
@@ -73,6 +95,21 @@ impl FraudDetectContract {
         Ok(())
     }
 
+    /// Remove an approved reporter (Admin only)
+    pub fn remove_reporter(env: Env, reporter: Address) -> Result<(), CommonError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(CommonError::NotInitialized)?;
+        admin.require_auth();
+        
+        env.storage().instance().remove(&DataKey::Reporter(reporter.clone()));
+        
+        env.events().publish(
+            (symbol_short!("rem_rpt"),),
+            reporter,
+        );
     /// Initialize the fraud detection contract with an administrator and ACL contract
     pub fn initialize(env: Env, admin: Address, acl_contract: Address) -> Result<(), StateError> {
         if env.storage().instance().has(&DataKey::Admin) {
@@ -105,6 +142,7 @@ impl FraudDetectContract {
         reporter: Address,
         agent_id: Symbol,
         score: u32,
+    ) -> Result<(), CommonError> {
     ) -> Result<(), AuthorizationError> {
         let auth = Self::get_auth(&env);
         check_authorization!(auth, &env, &reporter, permission!(Reporter));
@@ -113,6 +151,8 @@ impl FraudDetectContract {
 
         let acl: Address = env.storage().instance().get(&DataKey::AclContract).ok_or(AuthorizationError::NotInitialized)?;
 
+        if !is_reporter {
+            return Err(CommonError::NotAuthorized);
         if !common_utils::check_permission(env.clone(), acl, reporter.clone(), symbol_short!("fraud"), symbol_short!("report")) {
             return Err(AuthorizationError::NotAuthorized);
         }
@@ -232,6 +272,26 @@ impl FraudDetectContract {
         if env.storage().instance().has(&DataKey::MigrationState) {
             return Err(ContractError::InvalidState);
         }
+    }
+}
+
+#[contractimpl]
+impl DataMigration for FraudDetectContract {
+    fn export_state(env: Env) -> Vec<Val> {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        let mut state = Vec::new(&env);
+        state.push_back(admin.to_val());
+        state
+    }
+
+    fn import_state(env: Env, data: Vec<Val>) -> Result<(), CommonError> {
+        if data.len() < 1 {
+            return Err(CommonError::InvalidFormat);
+        }
+        let val = data.get(0).unwrap();
+        let admin = Address::try_from_val(&env, &val).map_err(|_| CommonError::InvalidFormat)?;
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        Ok(())
     }
 }
 
