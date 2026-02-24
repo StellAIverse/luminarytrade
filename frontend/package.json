@@ -17,6 +17,7 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^7.3.8",
     "@mui/material": "^5.15.0",
+    "@types/uuid": "^10.0.0",
     "ajv": "^8.18.0",
     "ajv-keywords": "^5.1.0",
     "axios": "^1.6.0",
@@ -26,6 +27,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.0",
+    "uuid": "^13.0.0"
     "recharts": "^3.7.0"
   },
   "devDependencies": {
