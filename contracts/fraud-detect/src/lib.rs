@@ -1,8 +1,6 @@
 #![no_std]
-use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec,
-};
-use common_utils::error::{AuthorizationError, StateError, ContractError};
+use common_utils::error::{AuthorizationError, ContractError, StateError};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec};
 
 #[derive(Clone)]
 #[contracttype]
@@ -48,9 +46,22 @@ impl FraudDetectContract {
         Vec::new(&_env)
     }
 
-    /// Update fraud detection model
-    pub fn update_model(_env: Env, _model_data: String) {
-        // TODO: Implement model updates
+    /// Update fraud detection model (Admin only)
+    pub fn update_model(env: Env, model_data: Bytes) -> Result<(), AuthorizationError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(AuthorizationError::NotInitialized)?;
+        admin.require_auth();
+
+        // TODO: Actually implement model logic if needed
+        env.events().publish(
+            (symbol_short!("mdl_upd"),),
+            (env.ledger().timestamp(), model_data),
+        );
+        Ok(())
+    }
 
     /// Initialize the fraud detection contract with an administrator
     pub fn initialize(env: Env, admin: Address) -> Result<(), StateError> {
@@ -69,7 +80,9 @@ impl FraudDetectContract {
             .get(&DataKey::Admin)
             .ok_or(AuthorizationError::NotInitialized)?;
         admin.require_auth();
-        env.storage().instance().set(&DataKey::Reporter(reporter), &true);
+        env.storage()
+            .instance()
+            .set(&DataKey::Reporter(reporter), &true);
         Ok(())
     }
 
@@ -81,7 +94,9 @@ impl FraudDetectContract {
             .get(&DataKey::Admin)
             .ok_or(AuthorizationError::NotInitialized)?;
         admin.require_auth();
-        env.storage().instance().remove(&DataKey::Reporter(reporter));
+        env.storage()
+            .instance()
+            .remove(&DataKey::Reporter(reporter));
         Ok(())
     }
 
@@ -151,7 +166,6 @@ impl FraudDetectContract {
         } else {
             reports.get(reports.len() - 1).unwrap().score
         }
-
     }
 }
 

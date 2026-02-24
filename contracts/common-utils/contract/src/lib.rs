@@ -1,23 +1,15 @@
 #![no_std]
 
 pub mod error;
-pub mod oracle_bridge;
-pub mod marketplace_types;
 pub mod marketplace;
+pub mod marketplace_types;
+pub mod oracle_bridge;
+pub mod timelock;
 pub mod validator;
 
 use soroban_sdk::{
-    contract,
-    contractimpl,
-    panic_with_error,
-    Symbol,
-    Address,
-    Env,
-    Bytes,
-    Vec,
-    contracterror,
-    contracttype,
-    BytesN,
+    contract, contracterror, contractimpl, contracttype, panic_with_error, Address, Bytes, BytesN,
+    Env, Symbol, Vec,
 };
 
 #[contracttype]
@@ -38,7 +30,7 @@ pub struct Attestation {
     pub attestation_hash: BytesN<32>, // unique ID / replay protection
 }
 
-use soroban_sdk::{ contract, contractimpl, Env };
+use soroban_sdk::{contract, contractimpl, Env};
 
 #[contract]
 pub struct EvolutionManager;
@@ -50,33 +42,22 @@ impl EvolutionManager {
         agent: Address,
         new_level: u32,
         total_stake: i128,
-        attestation_hash: BytesN<32>
+        attestation_hash: BytesN<32>,
     ) {
         env.events().publish(
             ("EvolutionCompleted",),
-            (agent, new_level, total_stake, attestation_hash)
+            (agent, new_level, total_stake, attestation_hash),
         );
     }
 }
 
 use soroban_sdk::{
-    contract,
-    contractimpl,
-    panic_with_error,
-    Symbol,
-    Address,
-    Env,
-    Bytes,
-    Vec,
-    contracterror,
-    contracttype,
+    contract, contracterror, contractimpl, contracttype, panic_with_error, Address, Bytes, Env,
+    Symbol, Vec,
 };
 
 pub use storage::{
-    IStorageKey,
-    InstanceStorageRepository,
-    PersistentStorageRepository,
-    StorageRepository,
+    IStorageKey, InstanceStorageRepository, PersistentStorageRepository, StorageRepository,
     TemporaryStorageRepository,
 };
 
@@ -128,8 +109,12 @@ const RATE_LIMIT_MAX: u32 = 10;
 impl CommonUtilsContract {
     /// Initialize contract with admin.
     pub fn initialize(env: Env, admin: Address) {
-        env.storage().persistent().set(&Symbol::new(&env, "admin"), &admin);
-        env.storage().persistent().set(&Symbol::new(&env, "exec_cnt"), &0u64);
+        env.storage()
+            .persistent()
+            .set(&Symbol::new(&env, "admin"), &admin);
+        env.storage()
+            .persistent()
+            .set(&Symbol::new(&env, "exec_cnt"), &0u64);
     }
 
     /// Submit an agent action.
@@ -162,13 +147,15 @@ impl CommonUtilsContract {
         }
 
         env.storage().persistent().set(&execution_key, &execution);
-        env.storage().persistent().set(&Symbol::new(&env, "exec_cnt"), &execution_id);
+        env.storage()
+            .persistent()
+            .set(&Symbol::new(&env, "exec_cnt"), &execution_id);
 
         Self::update_rate_limit(&env, &agent, timestamp);
 
         env.events().publish(
             (Symbol::new(&env, "act_sub"),),
-            (execution_id, agent, action_type, timestamp)
+            (execution_id, agent, action_type, timestamp),
         );
 
         execution_id
@@ -180,7 +167,10 @@ impl CommonUtilsContract {
     }
 
     pub fn admin(env: Env) -> Address {
-        env.storage().persistent().get(&Symbol::new(&env, "admin")).unwrap()
+        env.storage()
+            .persistent()
+            .get(&Symbol::new(&env, "admin"))
+            .unwrap()
     }
 
     fn check_rate_limit(env: &Env, agent: &Address) {
@@ -219,14 +209,17 @@ impl EvolutionManager {
         agent: Address,
         new_level: u32,
         total_stake: i128,
-        attestation_hash: BytesN<32>
+        attestation_hash: BytesN<32>,
     ) {
         env.events().publish(
             ("EvolutionCompleted",),
-            (agent, new_level, total_stake, attestation_hash)
+            (agent, new_level, total_stake, attestation_hash),
         );
     }
 }
 
 #[cfg(test)]
 mod test_marketplace;
+
+#[cfg(test)]
+mod timelock_tests;
