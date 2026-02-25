@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String};
+use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, symbol_short, Symbol, Vec};
 use common_utils::error::{AuthorizationError, StateError, ValidationError, ContractError};
 use common_utils::{rate_limit, rate_limit_adaptive};
 use common_utils::rate_limit::{RateLimiter, TrustTier};
@@ -7,6 +7,8 @@ use common_utils::storage_optimization::{ScoreStorage, DataSeparator, DataTemper
 use common_utils::storage_monitoring::{StorageTracker, PerformanceMonitor};
 use common_utils::data_migration::{DataMigrationManager, MigrationConfig, CompressionType};
 use common_utils::compression::{CompressionManager, CompressionType};
+use common_utils::state_machine::{State, StateMachine, CreditScoreState};
+use common_utils::{state_guard, transition_to};
 
 #[contracttype]
 pub enum DataKey {
@@ -14,19 +16,51 @@ pub enum DataKey {
     Score(Address),
     Factors(Address),
     MigrationState,
+    ContractState,
 }
 
 #[contract]
 pub struct CreditScoreContract;
 
+impl StateMachine<CreditScoreState> for CreditScoreContract {
+    fn get_state(env: &Env) -> State<CreditScoreState> {
+        env.storage()
+            .instance()
+            .get(&DataKey::ContractState)
+            .unwrap_or(State::Uninitialized)
+    }
+
+    fn set_state(env: &Env, state: State<CreditScoreState>) {
+        env.storage().instance().set(&DataKey::ContractState, &state);
+    }
+}
+
 #[contractimpl]
 impl CreditScoreContract {
     /// Initialize the credit score contract
     pub fn initialize(env: Env, admin: Address) -> Result<(), StateError> {
-        if env.storage().instance().has(&DataKey::Admin) {
+        // Ensure contract is uninitialized
+        let current_state = Self::get_state(&env);
+        if !current_state.is_uninitialized() {
             return Err(StateError::AlreadyInitialized);
         }
+
+        // Transition to Active state
+        let initial_state = State::Active(CreditScoreState {
+            admin: admin.clone(),
+            total_scores: 0,
+        });
+        
+        transition_to!(Self, &env, initial_state)?;
+        
+        // Store admin for backward compatibility
         env.storage().instance().set(&DataKey::Admin, &admin);
+        
+        env.events().publish(
+            (symbol_short!("init"),),
+            admin,
+        );
+        
         Ok(())
     }
 
@@ -37,15 +71,17 @@ impl CreditScoreContract {
         user: Address,
         tier: TrustTier,
     ) -> Result<(), AuthorizationError> {
-        let stored_admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(AuthorizationError::NotInitialized)?;
-        stored_admin.require_auth();
-        if stored_admin != admin {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(AuthorizationError::NotInitialized)?;
+        
+        if state_data.admin != admin {
             return Err(AuthorizationError::NotAuthorized);
         }
+        admin.require_auth();
+        
         RateLimiter::set_trust_tier(&env, &user, &tier);
         Ok(())
     }
@@ -56,15 +92,17 @@ impl CreditScoreContract {
         admin: Address,
         load: u32,
     ) -> Result<(), AuthorizationError> {
-        let stored_admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(AuthorizationError::NotInitialized)?;
-        stored_admin.require_auth();
-        if stored_admin != admin {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(AuthorizationError::NotInitialized)?;
+        
+        if state_data.admin != admin {
             return Err(AuthorizationError::NotAuthorized);
         }
+        admin.require_auth();
+        
         RateLimiter::set_network_load(&env, load);
         Ok(())
     }
@@ -74,6 +112,9 @@ impl CreditScoreContract {
         env: Env,
         account_id: String,
     ) -> Result<u32, ValidationError> {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
+        
         // Validate account_id is not empty
         if account_id.is_empty() {
             return Err(ValidationError::MissingRequiredField);
@@ -86,6 +127,11 @@ impl CreditScoreContract {
 
     /// Get credit score for an account (rate-limited)
     pub fn get_score(env: Env, account_id: Address) -> Result<u32, AuthorizationError> {
+        // Allow reads even when paused, but not when uninitialized or terminated
+        if Self::require_initialized(&env).is_err() {
+            return Err(AuthorizationError::NotInitialized);
+        }
+        
         // Rate limit: 60 reads per hour per user (adaptive)
         rate_limit_adaptive!(env, account_id, "get_score",
             max: 60, window: 3600,
@@ -116,16 +162,18 @@ impl CreditScoreContract {
         account_id: Address,
         factors: String,
     ) -> Result<(), AuthorizationError> {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
+        
         // Rate limit: 20 updates per hour globally
         rate_limit!(env, account_id, "upd_factor",
             max: 20, window: 3600,
             strategy: FixedWindow, scope: Global);
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(AuthorizationError::NotInitialized)?;
-        admin.require_auth();
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(AuthorizationError::NotInitialized)?;
+        
+        state_data.admin.require_auth();
 
         // Compress factors before storing
         let factors_bytes = factors.into_bytes();
@@ -156,20 +204,27 @@ impl CreditScoreContract {
         account_id: Address,
         score: u32,
     ) -> Result<(), AuthorizationError> {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
+        
         // Rate limit: 30 score-sets per hour per user
         rate_limit!(env, account_id, "set_score",
             max: 30, window: 3600,
             strategy: SlidingWindow, scope: PerUser);
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(AuthorizationError::NotInitialized)?;
-        admin.require_auth();
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(AuthorizationError::NotInitialized)?;
+        
+        state_data.admin.require_auth();
 
         // Store score with compression
         ScoreStorage::store_score(&env, &account_id, score, env.ledger().timestamp())
             .map_err(|_| AuthorizationError::NotAuthorized)?;
+        
+        // Update total scores count in state
+        let mut new_state_data = state_data.clone();
+        new_state_data.total_scores += 1;
+        Self::set_state(&env, State::Active(new_state_data));
         
         // Record storage operation
         StorageTracker::record_operation(
@@ -185,6 +240,10 @@ impl CreditScoreContract {
     
     /// Get credit score history for an account
     pub fn get_score_history(env: Env, account_id: Address, limit: u32) -> Result<Vec<common_utils::storage_optimization::ScoreData>, AuthorizationError> {
+        // Allow reads even when paused, but not when uninitialized or terminated
+        if Self::require_initialized(&env).is_err() {
+            return Err(AuthorizationError::NotInitialized);
+        }
         let _timer = PerformanceMonitor::start_timer(&env, &symbol_short!("get_score_history"));
         
         let result = ScoreStorage::get_score_history(&env, &account_id, limit)
@@ -204,18 +263,74 @@ impl CreditScoreContract {
         Ok(result)
     }
     
+    /// Pause the contract (Admin only)
+    pub fn pause(env: Env, admin: Address) -> Result<(), StateError> {
+        state_guard!(Self, &env, active);
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(StateError::NotInitialized)?;
+        
+        if state_data.admin != admin {
+            return Err(StateError::InvalidState);
+        }
+        admin.require_auth();
+        
+        let paused_state = State::Paused(state_data.clone());
+        transition_to!(Self, &env, paused_state)?;
+        
+        Ok(())
+    }
+
+    /// Resume the contract from paused state (Admin only)
+    pub fn resume(env: Env, admin: Address) -> Result<(), StateError> {
+        let state = Self::get_state(&env);
+        if !state.is_paused() {
+            return Err(StateError::InvalidState);
+        }
+        
+        let state_data = state.get_data().ok_or(StateError::NotInitialized)?;
+        
+        if state_data.admin != admin {
+            return Err(StateError::InvalidState);
+        }
+        admin.require_auth();
+        
+        let active_state = State::Active(state_data.clone());
+        transition_to!(Self, &env, active_state)?;
+        
+        Ok(())
+    }
+
+    /// Get the current contract state
+    pub fn get_contract_state(env: Env) -> State<CreditScoreState> {
+        Self::get_state(&env)
+    }
+
+    /// Get total scores count
+    pub fn get_total_scores(env: Env) -> Result<u64, StateError> {
+        state_guard!(Self, &env, initialized);
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(StateError::NotInitialized)?;
+        Ok(state_data.total_scores)
+    }
+    
     /// Migrate existing scores to compressed format
     pub fn migrate_to_compressed(env: Env, admin: Address) -> Result<u64, ContractError> {
-        // Check if admin
-        let stored_admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(ContractError::NotInitialized)?;
+        // State guard: must be active to start migration
+        state_guard!(Self, &env, active);
         
-        if stored_admin != admin {
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(ContractError::NotInitialized)?;
+        
+        if state_data.admin != admin {
             return Err(ContractError::Unauthorized);
         }
+        admin.require_auth();
+        
+        // Transition to migrating state
+        let migrating_state = State::Migrating(state_data.clone());
+        transition_to!(Self, &env, migrating_state)?;
         
         // Check if migration is already in progress
         if env.storage().instance().has(&DataKey::MigrationState) {
@@ -253,6 +368,10 @@ impl CreditScoreContract {
         
         // Clear migration state
         env.storage().instance().remove(&DataKey::MigrationState);
+        
+        // Transition back to active after migration
+        let active_state = State::Active(state_data);
+        transition_to!(Self, &env, active_state)?;
         
         Ok(migration_id)
     }

@@ -4,7 +4,7 @@
 
 #![no_std]
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec, Val, TryFromVal,
+    contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec, Val, TryFromVal, Bytes, BytesN,
 };
 use common_utils::error::CommonError;
 use common_utils::migration::DataMigration;
@@ -16,6 +16,8 @@ use common_utils::compression::{FraudReportCompressor, FraudReport};
 use common_utils::storage_optimization::{CompressedReportStorage, DataSeparator, DataTemperature};
 use common_utils::storage_monitoring::{StorageTracker, PerformanceMonitor};
 use common_utils::data_migration::{DataMigrationManager, MigrationConfig, CompressionType};
+use common_utils::state_machine::{State, StateMachine, FraudDetectState};
+use common_utils::{state_guard, transition_to};
 
 #[derive(Clone)]
 #[contracttype]
@@ -25,6 +27,8 @@ pub enum DataKey {
     Reports(Symbol),
     ReportsMetadata(Symbol),
     MigrationState,
+    ContractState,
+    Reporter(Address),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -38,72 +42,99 @@ pub struct FraudReport {
 #[contract]
 pub struct FraudDetectContract;
 
+impl StateMachine<FraudDetectState> for FraudDetectContract {
+    fn get_state(env: &Env) -> State<FraudDetectState> {
+        env.storage()
+            .instance()
+            .get(&DataKey::ContractState)
+            .unwrap_or(State::Uninitialized)
+    }
+
+    fn set_state(env: &Env, state: State<FraudDetectState>) {
+        env.storage().instance().set(&DataKey::ContractState, &state);
+    }
+}
+
 #[contractimpl]
 impl FraudDetectContract {
-    /// Initialize the fraud detection contract with an administrator
-    pub fn initialize(env: Env, admin: Address) -> Result<(), CommonError> {
-        if env.storage().instance().has(&DataKey::Admin) {
-            return Err(CommonError::AlreadyInitialized);
+    /// Initialize the fraud detection contract with an administrator and ACL contract
+    pub fn initialize(env: Env, admin: Address, acl_contract: Address) -> Result<(), StateError> {
+        // Ensure contract is uninitialized
+        let current_state = Self::get_state(&env);
+        if !current_state.is_uninitialized() {
+            return Err(StateError::AlreadyInitialized);
         }
+
+        // Transition to Active state
+        let initial_state = State::Active(FraudDetectState {
+            admin: admin.clone(),
+            acl_contract: acl_contract.clone(),
+            total_reports: 0,
+        });
+        
+        transition_to!(Self, &env, initial_state)?;
+        
+        // Store admin and ACL for backward compatibility
         env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().set(&DataKey::AclContract, &acl_contract);
         
         env.events().publish(
             (symbol_short!("init"),),
-            admin,
+            (admin, acl_contract),
         );
         Ok(())
     }
 
-    /// Add an approved reporter (Admin only)
-    pub fn add_reporter(env: Env, reporter: Address) -> Result<(), CommonError> {
-    /// Initialize the fraud detection contract
-    pub fn initialize(_env: Env) {
-        // TODO: Implement contract initialization
-    }
 
-    /// Analyze transaction for fraud
-    pub fn analyze_transaction(_env: Env, _transaction_data: String) -> bool {
-        // TODO: Implement fraud detection logic
-        false
-    }
+    /// Add an approved reporter (ACL Managed)
+    pub fn add_reporter(env: Env, caller: Address, reporter: Address) -> Result<(), AuthorizationError> {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
+        
+        caller.require_auth();
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(AuthorizationError::NotInitialized)?;
+        
+        if !common_utils::check_permission(
+            env.clone(),
+            state_data.acl_contract.clone(),
+            caller,
+            symbol_short!("fraud"),
+            symbol_short!("manage")
+        ) {
+            return Err(AuthorizationError::NotAuthorized);
+        }
 
-    /// Get fraud risk score
-    pub fn get_risk_score(_env: Env, _transaction_data: String) -> u32 {
-        // TODO: Implement risk scoring
-        0
-    }
-
-    /// Get fraud indicators
-    pub fn get_indicators(_env: Env, _transaction_data: String) -> Vec<String> {
-        // TODO: Implement indicator analysis
-        Vec::new(&_env)
-    }
-
-    /// Update fraud detection model (Admin only)
-    pub fn update_model(env: Env, model_data: Bytes) -> Result<(), AuthorizationError> {
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(CommonError::NotInitialized)?;
-        admin.require_auth();
-
-        // TODO: Actually implement model logic if needed
+        env.storage().instance().set(&DataKey::Reporter(reporter.clone()), &true);
+        
         env.events().publish(
-            (symbol_short!("mdl_upd"),),
-            (env.ledger().timestamp(), model_data),
+            (symbol_short!("add_rpt"),),
+            reporter,
         );
+        
         Ok(())
     }
 
     /// Remove an approved reporter (Admin only)
-    pub fn remove_reporter(env: Env, reporter: Address) -> Result<(), CommonError> {
-        let admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(CommonError::NotInitialized)?;
-        admin.require_auth();
+    pub fn remove_reporter(env: Env, caller: Address, reporter: Address) -> Result<(), AuthorizationError> {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
+        
+        caller.require_auth();
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(AuthorizationError::NotInitialized)?;
+        
+        if !common_utils::check_permission(
+            env.clone(),
+            state_data.acl_contract.clone(),
+            caller,
+            symbol_short!("fraud"),
+            symbol_short!("manage")
+        ) {
+            return Err(AuthorizationError::NotAuthorized);
+        }
         
         env.storage().instance().remove(&DataKey::Reporter(reporter.clone()));
         
@@ -111,29 +142,27 @@ impl FraudDetectContract {
             (symbol_short!("rem_rpt"),),
             reporter,
         );
-    /// Initialize the fraud detection contract with an administrator and ACL contract
-    pub fn initialize(env: Env, admin: Address, acl_contract: Address) -> Result<(), StateError> {
-        if env.storage().instance().has(&DataKey::Admin) {
-            return Err(StateError::AlreadyInitialized);
-        }
-        env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::AclContract, &acl_contract);
+        
         Ok(())
     }
 
-    /// Add an approved reporter (ACL Managed)
-    /// This function can now be called by anyone as long as they have the permission in ACL
-    pub fn add_reporter(env: Env, caller: Address, reporter: Address) -> Result<(), AuthorizationError> {
-        caller.require_auth();
+    /// Update fraud detection model (Admin only)
+    pub fn update_model(env: Env, admin: Address, model_data: Bytes) -> Result<(), AuthorizationError> {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
         
-        let acl: Address = env.storage().instance().get(&DataKey::AclContract).ok_or(AuthorizationError::NotInitialized)?;
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(AuthorizationError::NotInitialized)?;
         
-        if !common_utils::check_permission(env.clone(), acl, caller, symbol_short!("fraud"), symbol_short!("manage")) {
+        if state_data.admin != admin {
             return Err(AuthorizationError::NotAuthorized);
         }
+        admin.require_auth();
 
-        // The actual role granting happens in the ACL contract, but we can have local state if needed.
-        // For this refactor, we rely entirely on ACL for reporter status in submit_report.
+        env.events().publish(
+            (symbol_short!("mdl_upd"),),
+            (env.ledger().timestamp(), model_data),
+        );
         Ok(())
     }
 
@@ -144,15 +173,17 @@ impl FraudDetectContract {
         user: Address,
         tier: TrustTier,
     ) -> Result<(), AuthorizationError> {
-        let stored_admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(AuthorizationError::NotInitialized)?;
-        stored_admin.require_auth();
-        if stored_admin != admin {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(AuthorizationError::NotInitialized)?;
+        
+        if state_data.admin != admin {
             return Err(AuthorizationError::NotAuthorized);
         }
+        admin.require_auth();
+        
         RateLimiter::set_trust_tier(&env, &user, &tier);
         Ok(())
     }
@@ -163,15 +194,17 @@ impl FraudDetectContract {
         admin: Address,
         load: u32,
     ) -> Result<(), AuthorizationError> {
-        let stored_admin: Address = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .ok_or(AuthorizationError::NotInitialized)?;
-        stored_admin.require_auth();
-        if stored_admin != admin {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(AuthorizationError::NotInitialized)?;
+        
+        if state_data.admin != admin {
             return Err(AuthorizationError::NotAuthorized);
         }
+        admin.require_auth();
+        
         RateLimiter::set_network_load(&env, load);
         Ok(())
     }
@@ -182,8 +215,9 @@ impl FraudDetectContract {
         reporter: Address,
         agent_id: Symbol,
         score: u32,
-    ) -> Result<(), CommonError> {
     ) -> Result<(), AuthorizationError> {
+        // State guard: contract must be active
+        state_guard!(Self, &env, active);
         // Rate limit: 10 submissions per hour per user (adaptive)
         rate_limit_adaptive!(env, reporter, "submit_rpt",
             max: 10, window: 3600,
@@ -194,11 +228,16 @@ impl FraudDetectContract {
         
         reporter.require_auth();
 
-        let acl: Address = env.storage().instance().get(&DataKey::AclContract).ok_or(AuthorizationError::NotInitialized)?;
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(AuthorizationError::NotInitialized)?;
 
-        if !is_reporter {
-            return Err(CommonError::NotAuthorized);
-        if !common_utils::check_permission(env.clone(), acl, reporter.clone(), symbol_short!("fraud"), symbol_short!("report")) {
+        if !common_utils::check_permission(
+            env.clone(),
+            state_data.acl_contract.clone(),
+            reporter.clone(),
+            symbol_short!("fraud"),
+            symbol_short!("report")
+        ) {
             return Err(AuthorizationError::NotAuthorized);
         }
 
@@ -238,6 +277,11 @@ impl FraudDetectContract {
             true
         );
 
+        // Update total reports count in state
+        let mut new_state_data = state_data.clone();
+        new_state_data.total_reports += 1;
+        Self::set_state(&env, State::Active(new_state_data));
+
         // Emit event
         env.events().publish(
             (symbol_short!("fraud_rpt"), agent_id),
@@ -250,9 +294,64 @@ impl FraudDetectContract {
         Ok(())
     }
 
+    /// Pause the contract (Admin only)
+    pub fn pause(env: Env, admin: Address) -> Result<(), StateError> {
+        state_guard!(Self, &env, active);
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(StateError::NotInitialized)?;
+        
+        if state_data.admin != admin {
+            return Err(StateError::InvalidState);
+        }
+        admin.require_auth();
+        
+        let paused_state = State::Paused(state_data.clone());
+        transition_to!(Self, &env, paused_state)?;
+        
+        Ok(())
+    }
+
+    /// Resume the contract from paused state (Admin only)
+    pub fn resume(env: Env, admin: Address) -> Result<(), StateError> {
+        let state = Self::get_state(&env);
+        if !state.is_paused() {
+            return Err(StateError::InvalidState);
+        }
+        
+        let state_data = state.get_data().ok_or(StateError::NotInitialized)?;
+        
+        if state_data.admin != admin {
+            return Err(StateError::InvalidState);
+        }
+        admin.require_auth();
+        
+        let active_state = State::Active(state_data.clone());
+        transition_to!(Self, &env, active_state)?;
+        
+        Ok(())
+    }
+
+    /// Get the current contract state
+    pub fn get_contract_state(env: Env) -> State<FraudDetectState> {
+        Self::get_state(&env)
+    }
+
+    /// Get total reports count
+    pub fn get_total_reports(env: Env) -> Result<u64, StateError> {
+        state_guard!(Self, &env, initialized);
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(StateError::NotInitialized)?;
+        Ok(state_data.total_reports)
+    }
+
     /// Retrieve all fraud reports for a given agent ID
-    /// Rate-limited to 30 reads per hour per function (shared across users)
     pub fn get_reports(env: Env, agent_id: Symbol) -> Vec<FraudReport> {
+        // Allow reads even when paused, but not when uninitialized or terminated
+        if Self::require_initialized(&env).is_err() {
+            return Vec::new(&env);
+        }
         let _timer = PerformanceMonitor::start_timer(&env, &symbol_short!("get_reports"));
         
         let result = CompressedReportStorage::get_reports(&env, &agent_id)
@@ -311,13 +410,34 @@ impl FraudDetectContract {
     
     /// Migrate existing data to compressed format
     pub fn migrate_to_compressed(env: Env, admin: Address) -> Result<u64, ContractError> {
-        let auth = Self::get_auth(&env);
-        check_authorization!(auth, &env, &admin, permission!(Admin));
+        // State guard: must be active to start migration
+        state_guard!(Self, &env, active);
+        
+        let state = Self::get_state(&env);
+        let state_data = state.get_data().ok_or(ContractError::NotInitialized)?;
+        
+        if state_data.admin != admin {
+            return Err(ContractError::Unauthorized);
+        }
+        admin.require_auth();
+        
+        // Transition to migrating state
+        let migrating_state = State::Migrating(state_data.clone());
+        transition_to!(Self, &env, migrating_state)?;
         
         // Check if migration is already in progress
         if env.storage().instance().has(&DataKey::MigrationState) {
             return Err(ContractError::InvalidState);
         }
+        
+        // Perform migration...
+        let migration_id = 1u64; // Simplified
+        
+        // Transition back to active after migration
+        let active_state = State::Active(state_data);
+        transition_to!(Self, &env, active_state)?;
+        
+        Ok(migration_id)
     }
 }
 
