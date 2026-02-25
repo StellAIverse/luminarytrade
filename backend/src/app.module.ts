@@ -26,10 +26,15 @@ import { IndexerModule } from './agent/agent.module';
 import { AuditLogModule } from './audit/audit-log.module';
 import { WorkerModule } from './worker/worker.module';
 
+import { validate } from "./config/config.validation";
+import { AppConfigService } from "./config/app-config.service";
+
+@Module({
   imports: [
     SimulatorModule, OracleModule, MaterializedViewModule
     ConfigModule.forRoot({
       isGlobal: true,
+      validate,
     }),
 
     // Startup Module - First to ensure proper initialization order
@@ -63,6 +68,8 @@ import { WorkerModule } from './worker/worker.module';
     RateLimitingModule,
     AuthModule,
   ],
+  providers: [AppConfigService],
+  exports: [AppConfigService],
   controllers: [AppController],
 })
-export class AppModule {}
+export class AppModule { }
