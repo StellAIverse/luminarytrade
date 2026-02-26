@@ -22,6 +22,7 @@ import { PluginsModule } from './plugins/plugins.module';
 import { validate } from './config/config.validation';
 import { AppConfigService } from './config/app-config.service';
 import { MiddlewarePipelineModule } from './middleware-pipeline/middleware-pipeline.module';
+import { DecoratorCompositionModule } from './decorator-composition/decorator-composition.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { MiddlewarePipelineModule } from './middleware-pipeline/middleware-pipel
     AuthModule,
     MaterializedViewsModule,
     MiddlewarePipelineModule,
+    DecoratorCompositionModule,
   ],
   providers: [AppConfigService],
   exports: [AppConfigService],
