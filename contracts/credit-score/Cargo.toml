@@ -6,7 +6,7 @@ authors = ["ChenAIKit Team"]
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 soroban-sdk = "20.0.0"

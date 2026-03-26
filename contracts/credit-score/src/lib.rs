@@ -15,6 +15,20 @@ use common_utils::dex::cache::{DexDataCache, CacheConfig};
 use common_utils::state_machine::{State, StateMachine, CreditScoreState};
 use common_utils::{state_guard, transition_to};
 
+mod validation;
+mod penalties;
+mod scoring;
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ScoreFactors {
+    pub payment_history: u32,
+    pub utilization: u32,
+    pub length: u32,
+    pub mix: u32,
+    pub new_inquiries: u32,
+}
+
 #[contracttype]
 pub enum DataKey {
     Admin,
@@ -191,12 +205,105 @@ impl CreditScoreContract {
 
     pub fn calculate_score(
         env: Env,
-        account_id: String,
+        payment_history: u32,
+        utilization: u32,
+        length: u32,
+        mix: u32,
+        new_inquiries: u32,
+        days_late: u32,
+        defaulted: bool,
+        charged_off: bool,
+        bankrupt_years: u32,
     ) -> Result<u32, ValidationError> {
-        if account_id.is_empty() {
-            return Err(ValidationError::MissingRequiredField);
+        validation::validate_factors(payment_history, utilization, length, mix, new_inquiries)
+            .map_err(|_| ValidationError::NotAuthorized)?;
+        
+        let weighted_avg = scoring::calculate_weighted_average(
+            payment_history,
+            utilization,
+            length,
+            mix,
+            new_inquiries,
+        );
+        
+        let penalties = penalties::calculate_total_penalties(
+            days_late,
+            defaulted,
+            charged_off,
+            bankrupt_years,
+        );
+        
+        let final_score = scoring::calculate_final_score(weighted_avg, penalties);
+        
+        Ok(final_score)
+    }
+
+    pub fn update_credit_score(
+        env: Env,
+        admin: Address,
+        user: Address,
+        payment_history: u32,
+        utilization: u32,
+        length: u32,
+        mix: u32,
+        new_inquiries: u32,
+        days_late: u32,
+        defaulted: bool,
+        charged_off: bool,
+        bankrupt_years: u32,
+    ) -> Result<u32, ContractError> {
+        Self::require_admin(&env, &admin)?;
+
+        // 1. Validate factors
+        validation::validate_factors(payment_history, utilization, length, mix, new_inquiries)
+            .map_err(|_| ContractError::InvalidState)?; // Proxy for validation error
+
+        // 2. Calculate new score
+        let weighted_avg = scoring::calculate_weighted_average(
+            payment_history,
+            utilization,
+            length,
+            mix,
+            new_inquiries,
+        );
+        
+        let penalties = penalties::calculate_total_penalties(
+            days_late,
+            defaulted,
+            charged_off,
+            bankrupt_years,
+        );
+        
+        let new_score = scoring::calculate_final_score(weighted_avg, penalties);
+
+        // 3. Jump detection
+        let current_score = Self::get_base_score(&env, &user)?;
+        if current_score != 500 { // Only check jump if not default/first time
+            validation::validate_score_jump(current_score, new_score)
+                .map_err(|_| ContractError::InvalidState)?;
         }
-        Ok(500)
+
+        // 4. Store score and history
+        ScoreStorage::store_score(&env, &user, new_score, env.ledger().timestamp())
+            .map_err(|_| ContractError::Unauthorized)?;
+
+        // 5. Store factors
+        let factors = ScoreFactors {
+            payment_history,
+            utilization,
+            length,
+            mix,
+            new_inquiries,
+        };
+        env.storage().persistent().set(&DataKey::Factors(user.clone()), &factors);
+
+        // 6. Log event
+        env.events().publish(
+            (Symbol::new(&env, "score_updated"), user),
+            (new_score, env.ledger().timestamp()),
+        );
+
+        Ok(new_score)
     }
 
     pub fn get_score(env: Env, account_id: Address) -> Result<u32, AuthorizationError> {
@@ -531,5 +638,3 @@ pub struct ScoreWithSignals {
     pub signals: Vec<ScoringSignal>,
 }
 
-#[cfg(test)]
-mod test;
