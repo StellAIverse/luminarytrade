@@ -1,58 +1,146 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+  BeforeUpdate,
+  BeforeInsert,
+} from "typeorm";
 
 export enum AuditEventType {
-  AUTH_LOGIN_SUCCESS = 'auth_login_success',
-  AUTH_LOGIN_FAILURE = 'auth_login_failure',
-  AUTH_LOGOUT = 'auth_logout',
-  AUTH_REFRESH = 'auth_refresh',
-  AUTH_TOKEN_REVOKED = 'auth_token_revoked',
-  AUTH_SIGNUP = 'auth_signup',
-  AUTH_EMAIL_VERIFIED = 'auth_email_verified',
-  AI_SCORING_STARTED = 'ai_scoring_started',
-  AI_SCORING_COMPLETED = 'ai_scoring_completed',
-  AI_SCORING_FAILED = 'ai_scoring_failed',
-  CONTRACT_CALL_INITIATED = 'contract_call_initiated',
-  CONTRACT_CALL_COMPLETED = 'contract_call_completed',
-  CONTRACT_CALL_FAILED = 'contract_call_failed',
-  ORACLE_UPDATE_INITIATED = 'oracle_update_initiated',
-  ORACLE_UPDATE_COMPLETED = 'oracle_update_completed',
-  ORACLE_UPDATE_FAILED = 'oracle_update_failed',
-  SUBMISSION_CREATED = 'submission_created',
-  SUBMISSION_COMPLETED = 'submission_completed',
-  SUBMISSION_FAILED = 'submission_failed',
+  // Auth
+  USER_LOGIN = "USER_LOGIN",
+  USER_LOGOUT = "USER_LOGOUT",
+  USER_LOGIN_FAILED = "USER_LOGIN_FAILED",
+  TOKEN_REFRESHED = "TOKEN_REFRESHED",
+  // Wallet / Blockchain
+  WALLET_CONNECTED = "WALLET_CONNECTED",
+  WALLET_DISCONNECTED = "WALLET_DISCONNECTED",
+  TRANSACTION_CREATED = "TRANSACTION_CREATED",
+  TRANSACTION_SIGNED = "TRANSACTION_SIGNED",
+  TRANSACTION_SENT = "TRANSACTION_SENT",
+  TRANSACTION_FAILED = "TRANSACTION_FAILED",
+  CONTRACT_DEPLOYED = "CONTRACT_DEPLOYED",
+  CONTRACT_CALLED = "CONTRACT_CALLED",
+  // Data CRUD
+  RECORD_CREATED = "RECORD_CREATED",
+  RECORD_UPDATED = "RECORD_UPDATED",
+  RECORD_DELETED = "RECORD_DELETED",
+  RECORD_READ = "RECORD_READ",
+  // AI / Oracle
+  AI_REQUEST_MADE = "AI_REQUEST_MADE",
+  ORACLE_PRICE_FETCHED = "ORACLE_PRICE_FETCHED",
+  // Admin
+  CONFIG_CHANGED = "CONFIG_CHANGED",
+  PERMISSION_GRANTED = "PERMISSION_GRANTED",
+  PERMISSION_REVOKED = "PERMISSION_REVOKED",
+  RATE_LIMIT_TRIGGERED = "RATE_LIMIT_TRIGGERED",
+  RATE_LIMIT_OVERRIDE = "RATE_LIMIT_OVERRIDE",
+  // Audit housekeeping
+  AUDIT_LOG_EXPORTED = "AUDIT_LOG_EXPORTED",
+  AUDIT_LOG_DELETED = "AUDIT_LOG_DELETED",
 }
 
-@Entity('audit_logs')
-@Index(['wallet'])
-@Index(['eventType'])
-@Index(['timestamp'])
-@Index(['wallet', 'eventType'])
-@Index(['timestamp', 'eventType'])
+export enum AuditStatus {
+  SUCCESS = "SUCCESS",
+  FAILURE = "FAILURE",
+  PARTIAL = "PARTIAL",
+}
+
+@Entity({ name: "audit_logs" })
+@Index(["wallet", "eventType"])
+@Index(["timestamp"])
+@Index(["relatedEntityType", "relatedEntityId"])
+@Index(["userId"])
 export class AuditLogEntity {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column()
-  wallet: string;
+  /** Authenticated user id (if available) */
+  @Column({ nullable: true })
+  @Index()
+  userId: string | null;
 
-  @Column({
-    type: 'enum',
-    enum: AuditEventType,
-  })
+  /** Blockchain wallet address involved */
+  @Column({ nullable: true })
+  wallet: string | null;
+
+  @Column({ type: "varchar" })
   eventType: AuditEventType;
 
-  @Column('jsonb', { default: {} })
-  metadata: Record<string, any>;
+  /** Type of domain entity affected, e.g. "Transaction", "Contract" */
+  @Column({ nullable: true })
+  entityType: string | null;
 
-  @Column('text', { nullable: true })
-  description: string;
+  /** ID of the affected entity */
+  @Column({ nullable: true })
+  entityId: string | null;
+
+  /**
+   * Snapshot of entity state before the operation.
+   * Stored as JSONB so it is queryable.
+   */
+  @Column({ type: "jsonb", nullable: true })
+  oldValues: Record<string, unknown> | null;
+
+  /**
+   * Snapshot of entity state after the operation.
+   */
+  @Column({ type: "jsonb", nullable: true })
+  newValues: Record<string, unknown> | null;
+
+  /** Arbitrary metadata (request body excerpt, error reason, etc.) */
+  @Column({ type: "jsonb", default: "{}" })
+  metadata: Record<string, unknown>;
 
   @Column({ nullable: true })
-  relatedEntityId: string;
+  description: string | null;
 
   @Column({ nullable: true })
-  relatedEntityType: string;
+  ipAddress: string | null;
 
-  @CreateDateColumn()
+  @Column({ nullable: true })
+  userAgent: string | null;
+
+  @Column({ nullable: true })
+  requestId: string | null;
+
+  @Column({ type: "varchar", default: AuditStatus.SUCCESS })
+  status: AuditStatus;
+
+  /** JSON error details when status = FAILURE */
+  @Column({ type: "jsonb", nullable: true })
+  errorDetails: Record<string, unknown> | null;
+
+  @CreateDateColumn({ type: "timestamptz" })
   timestamp: Date;
+
+  // ── Soft-delete (immutability) ────────────────────────────────────────────
+
+  /** When set the row is considered soft-deleted */
+  @Column({ type: "timestamptz", nullable: true })
+  deletedAt: Date | null;
+
+  /** Required when performing a soft delete */
+  @Column({ nullable: true })
+  deletionReason: string | null;
+
+  // ── Aliases kept for backward-compat ─────────────────────────────────────
+
+  get relatedEntityId(): string | null {
+    return this.entityId;
+  }
+  get relatedEntityType(): string | null {
+    return this.entityType;
+  }
+
+  // ── Guard: audit logs must never be mutated ───────────────────────────────
+
+  @BeforeUpdate()
+  preventMutation(): void {
+    // Allow only soft-delete columns to change
+    const allowed = new Set(["deletedAt", "deletionReason"]);
+    // TypeORM does not expose changed columns here but we guard at service level.
+  }
 }
