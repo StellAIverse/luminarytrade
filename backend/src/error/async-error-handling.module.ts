@@ -1,8 +1,6 @@
-import { DynamicModule, Global, Module, Provider } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
-import { CircuitBreakerService } from './circuit-breaker/circuit-breaker.service';
-import { AsyncExceptionFilter } from './filters/async-exception.filter';
-import { AsyncErrorInterceptor } from './interceptors/async-error.interceptor';
+import { DynamicModule, Global, Module, Provider } from "@nestjs/common";
+import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
+import { CircuitBreakerService } from "./circuit-breaker.service";
 
 export interface AsyncErrorHandlingModuleOptions {
   /**

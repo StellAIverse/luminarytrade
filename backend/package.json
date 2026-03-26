@@ -12,6 +12,8 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
+    "@apollo/server": "^4.9.0",
+    "@apollo/subgraph": "^2.6.0",
     "@nestjs/bull": "^10.0.1",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/cache-manager": "^2.2.0",
@@ -23,6 +25,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^10.3.0",
     "@nestjs/schedule": "^6.1.1",
+    "@nestjs/swagger": "^11.2.6",
     "@nestjs/typeorm": "^10.0.1",
     "@nestjs/websockets": "^10.3.0",
     "@opentelemetry/api": "^1.8.0",
@@ -44,7 +47,10 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "cookie-parser": "^1.4.6",
+    "dataloader": "^2.2.0",
     "ethers": "^6.15.0",
+    "graphql": "^16.8.0",
+    "graphql-tag": "^2.12.0",
     "helmet": "^8.1.0",
     "json-logic-js": "^2.0.2",
     "pg": "^8.11.3",
@@ -55,12 +61,7 @@
     "stellar-sdk": "^11.2.2",
     "supertest": "^7.2.2",
     "typeorm": "^0.3.19",
-    "uuid": "^9.0.1",
-    "@apollo/server": "^4.9.0",
-    "@apollo/subgraph": "^2.6.0",
-    "dataloader": "^2.2.0",
-    "graphql": "^16.8.0",
-    "graphql-tag": "^2.12.0"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@nestjs/testing": "^10.0.0",
