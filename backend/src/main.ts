@@ -35,8 +35,6 @@ async function bootstrap() {
     transform: true,
   }));
 
-  app.useGlobalFilters(new GlobalExceptionFilter());
-
   // Apply tracing interceptor globally
   const tracingInterceptor = app.get(TracingInterceptor);
   const responseTransform = app.get(ResponseTransformInterceptor);

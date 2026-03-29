@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { ConfigModule } from './config/config.module';
 import { BullModule } from '@nestjs/bull';
@@ -28,11 +29,13 @@ import { HealthModule } from './health/health.module';
 import { EventsModule } from './events/events.module';
 import { GraphqlApiModule } from './graphql/graphql.module';
 import { AnalyticsModule } from './analytics/analytics.module';
-
-// Monitoring and Observability Modules
 import { MetricsModule } from './metrics/metrics.module';
 import { LoggingModule } from './logging/logging.module';
 import { AlertingModule } from './alerting/alerting.module';
+
+// i18n
+import { I18nModule } from './i18n/i18n.module';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 @Module({
   imports: [
@@ -58,13 +61,16 @@ import { AlertingModule } from './alerting/alerting.module';
         return factory.createConfig();
       },
     }),
-    
+
+    // i18n — must come before any module that uses I18nService
+    I18nModule,
+
     // Observability Stack (order matters - tracing first)
     TracingModule,
     MetricsModule,
     LoggingModule,
     AlertingModule,
-    
+
     // Application Modules
     TransactionModule,
     SimulatorModule,
@@ -82,7 +88,13 @@ import { AlertingModule } from './alerting/alerting.module';
     GraphqlApiModule,
     AnalyticsModule,
   ],
-  providers: [AppConfigService],
+  providers: [
+    AppConfigService,
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
+  ],
   exports: [AppConfigService],
   controllers: [AppController],
 })
