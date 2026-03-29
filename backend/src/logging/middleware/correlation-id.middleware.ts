@@ -5,6 +5,7 @@ import { traceContextStorage } from '../../common/async-storage';
 
 @Injectable()
 export class CorrelationIdMiddleware implements NestMiddleware {
+  name = 'CorrelationIdMiddleware';
   use(req: Request, res: Response, next: NextFunction) {
     const correlationId = (req.headers['x-correlation-id'] as string) || uuidv4();
     const userId = (req as any).user?.id || (req.headers['x-user-id'] as string);
