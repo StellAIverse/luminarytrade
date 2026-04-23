@@ -31,10 +31,22 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, panic_with_error,
-    Address, Bytes, Env, Map, Symbol, Vec, IntoVal, Val, String,
+    contract, contracterror, contractimpl, contracttype, token,
+    Address, Bytes, Env, Map, Symbol, Vec,
 };
-use common_utils::error::CommonError;
+
+#[contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum BridgeError {
+    InvalidFormat = 1001,
+    InvalidLength = 1004,
+    NotAuthorized = 1101,
+    NotInitialized = 1109,
+    AlreadyInitialized = 1110,
+    KeyNotFound = 1201,
+    OutOfRange = 1003,
+}
 
 // ============================================================================
 // Storage Keys
@@ -57,18 +69,21 @@ pub enum DataKey {
     // Transfer Tracking
     Transfer(u64),
     TransferNonce,
-    BurnedTokens(Address),
-    MintedTokens(Address),
+    BurnedTokens(Address), // token contract
+    MintedTokens(Address), // token contract
+    // Prevent double counting attestations per relayer
+    Attested(u64, Address),
+    WithdrawalRecipient(u64),
     
     // Liquidity Management
-    LiquidityPool(Symbol),
-    TotalLiquidity(Symbol),
-    LockedLiquidity(Symbol),
+    LiquidityPool(Address), // token contract
+    TotalLiquidity(Address),
+    LockedLiquidity(Address),
     
     // Rate Limiting
-    RateLimitConfig(Symbol),
-    RateLimitUsed(Symbol, u64),
-    DailyLimit(Symbol),
+    RateLimitConfig(Address),
+    RateLimitUsed(Address, u64),
+    DailyLimit(Address),
     
     // Security
     Paused,
@@ -80,10 +95,16 @@ pub enum DataKey {
     ProtocolFeeBps,
     SlippageToleranceBps,
     FeeRecipient,
+    // Dynamic fee config
+    FeeOracle, // Address authorized to report congestion
+    DynamicFeeEnabled,
+    CongestionThresholdBps,
+    MaxExtraFeeBps,
+    DynamicBridgeFeeBps,
     
     // Monitoring
     LastTransferTime,
-    TotalVolume(Symbol),
+    TotalVolume(Address),
     HealthCheckTimestamp,
 }
 
@@ -139,8 +160,8 @@ pub struct BridgeTransfer {
     pub sender: Address,
     /// Recipient address (on destination chain, as bytes for EVM compatibility)
     pub recipient: Bytes,
-    /// Token type
-    pub token: Symbol,
+    /// Token contract address (Soroban token interface)
+    pub token: Address,
     /// Amount to transfer
     pub amount: i128,
     /// Fee amount
@@ -213,8 +234,8 @@ pub struct BridgeConfig {
 #[derive(Clone)]
 #[contracttype]
 pub struct LiquidityPool {
-    /// Token type
-    pub token: Symbol,
+    /// Token contract
+    pub token: Address,
     /// Total liquidity on this chain
     pub total_liquidity: i128,
     /// Available liquidity
@@ -260,7 +281,7 @@ pub struct BridgeStats {
     /// Total transfers processed
     pub total_transfers: u32,
     /// Total volume bridged
-    pub total_volume: Map<Symbol, i128>,
+    pub total_volume: Map<Address, i128>,
     /// Active relayers count
     pub active_relayers: u32,
     /// Is bridge paused
@@ -268,7 +289,7 @@ pub struct BridgeStats {
     /// Last health check timestamp
     pub last_health_check: u64,
     /// Current rate limit usage
-    pub rate_limit_usage: Map<Symbol, i128>,
+    pub rate_limit_usage: Map<Address, i128>,
 }
 
 /// Event data for cross-chain transfer
@@ -297,7 +318,6 @@ pub struct BridgeEvent {
 
 const SECONDS_PER_DAY: u64 = 86400;
 const DEFAULT_TRANSFER_TIMEOUT: u64 = 3600; // 1 hour
-const DEFAULT_MIN_CONFIRMATIONS: u32 = 3;
 const DEFAULT_BRIDGE_FEE_BPS: u32 = 30; // 0.3%
 const DEFAULT_PROTOCOL_FEE_BPS: u32 = 10; // 0.1%
 const DEFAULT_SLIPPAGE_BPS: u32 = 50; // 0.5%
@@ -327,21 +347,21 @@ impl BridgeContract {
     /// # Returns
     /// 
     /// * `Ok(())` - Initialization successful
-    /// * `Err(CommonError)` - If already initialized
+    /// * `Err(BridgeError)` - If already initialized
     pub fn initialize(
         env: Env,
         admin: Address,
         initial_relayers: Vec<Address>,
         min_confirmations: u32,
-    ) -> Result<(), CommonError> {
+    ) -> Result<(), BridgeError> {
         // Check if already initialized
         if env.storage().instance().has(&DataKey::Initialized) {
-            return Err(CommonError::AlreadyInitialized);
+            return Err(BridgeError::AlreadyInitialized);
         }
         
         // Validate relayers
         if initial_relayers.len() < min_confirmations {
-            return Err(CommonError::InvalidLength);
+            return Err(BridgeError::InvalidLength);
         }
         
         // Store admin
@@ -388,6 +408,11 @@ impl BridgeContract {
         env.storage().instance().set(&DataKey::ProtocolFeeBps, &fee_config.protocol_fee_bps);
         env.storage().instance().set(&DataKey::SlippageToleranceBps, &fee_config.slippage_tolerance_bps);
         env.storage().instance().set(&DataKey::FeeRecipient, &fee_config.fee_recipient);
+        // Initialize dynamic fee defaults (disabled by default)
+        env.storage().instance().set(&DataKey::DynamicFeeEnabled, &false);
+        env.storage().instance().set(&DataKey::CongestionThresholdBps, &7000u32);
+        env.storage().instance().set(&DataKey::MaxExtraFeeBps, &200u32);
+        env.storage().instance().set(&DataKey::DynamicBridgeFeeBps, &fee_config.bridge_fee_bps);
         
         // Initialize transfer nonce
         env.storage().instance().set(&DataKey::TransferNonce, &0u64);
@@ -398,7 +423,7 @@ impl BridgeContract {
         
         // Emit initialization event
         env.events().publish(
-            (symbol_short!("bridge_init"), admin),
+            (Symbol::new(&env, "bridge_init"), admin),
             (relayer_count, min_confirmations),
         );
         
@@ -419,36 +444,36 @@ impl BridgeContract {
     /// # Returns
     /// 
     /// * `Ok(BridgeTransfer)` - Created transfer request
-    /// * `Err(CommonError)` - If validation fails or paused
+    /// * `Err(BridgeError)` - If validation fails or paused
     pub fn initiate_transfer(
         env: Env,
         sender: Address,
         recipient: Bytes,
         dest_chain: ChainType,
-        token: Symbol,
+        token_id: Address,
         amount: i128,
-    ) -> Result<BridgeTransfer, CommonError> {
+    ) -> Result<BridgeTransfer, BridgeError> {
         // Verify sender authorization
         sender.require_auth();
         
         // Check if bridge is paused
         let paused: bool = env.storage().instance().get(&DataKey::Paused).unwrap_or(false);
         if paused {
-            return Err(CommonError::NotAuthorized);
+            return Err(BridgeError::NotAuthorized);
         }
         
         // Validate amount
         let config: BridgeConfig = env.storage().instance().get(&DataKey::BridgeConfig).unwrap();
         if amount < config.min_transfer_amount {
-            return Err(CommonError::OutOfRange);
+            return Err(BridgeError::OutOfRange);
         }
         if amount > config.max_transfer_amount {
-            return Err(CommonError::OutOfRange);
+            return Err(BridgeError::OutOfRange);
         }
         
         // Check rate limit
         if config.rate_limit_enabled {
-            Self::check_rate_limit(&env, token.clone(), amount)?;
+            Self::check_rate_limit(&env, token_id.clone(), amount)?;
         }
         
         // Calculate fees
@@ -466,7 +491,7 @@ impl BridgeContract {
             dest_chain,
             sender: sender.clone(),
             recipient: recipient.clone(),
-            token: token.clone(),
+            token: token_id.clone(),
             amount,
             fee,
             net_amount,
@@ -479,17 +504,21 @@ impl BridgeContract {
         // Store transfer
         env.storage().persistent().set(&DataKey::Transfer(nonce), &transfer);
         
-        // Lock liquidity
-        Self::lock_liquidity(&env, token.clone(), amount)?;
+        // Lock the sender's tokens in this contract (secure locking).
+        let token_client = token::Client::new(&env, &token_id);
+        token_client.transfer(&sender, &env.current_contract_address(), &amount);
+
+        // Track liquidity locked for this token.
+        Self::lock_liquidity(&env, token_id.clone(), amount)?;
         
         // Update rate limit
         if config.rate_limit_enabled {
-            Self::update_rate_limit(&env, token.clone(), amount)?;
+            Self::update_rate_limit(&env, token_id.clone(), amount)?;
         }
         
         // Emit event
         env.events().publish(
-            (symbol_short!("bridge_req"), sender.clone()),
+            (Symbol::new(&env, "bridge_req"), sender.clone()),
             (nonce, dest_chain as u32, amount),
         );
         
@@ -508,13 +537,13 @@ impl BridgeContract {
     /// # Returns
     /// 
     /// * `Ok(bool)` - True if confirmation succeeded
-    /// * `Err(CommonError)` - If invalid relayer or transfer
+    /// * `Err(BridgeError)` - If invalid relayer or transfer
     pub fn relay_attestation(
         env: Env,
         relayer: Address,
         transfer_id: u64,
-        signature: Bytes,
-    ) -> Result<bool, CommonError> {
+        _signature: Bytes,
+    ) -> Result<bool, BridgeError> {
         // Verify relayer authorization
         relayer.require_auth();
         
@@ -523,10 +552,19 @@ impl BridgeContract {
             .storage()
             .persistent()
             .get(&DataKey::Relayer(relayer.clone()))
-            .ok_or(CommonError::NotAuthorized)?;
+            .ok_or(BridgeError::NotAuthorized)?;
         
         if !relayer_info.active {
-            return Err(CommonError::NotAuthorized);
+            return Err(BridgeError::NotAuthorized);
+        }
+
+        // Prevent duplicate attestations by the same relayer for the same transfer.
+        if env
+            .storage()
+            .persistent()
+            .has(&DataKey::Attested(transfer_id, relayer.clone()))
+        {
+            return Err(BridgeError::AlreadyInitialized);
         }
         
         // Get transfer
@@ -534,11 +572,11 @@ impl BridgeContract {
             .storage()
             .persistent()
             .get(&DataKey::Transfer(transfer_id))
-            .ok_or(CommonError::KeyNotFound)?;
+            .ok_or(BridgeError::KeyNotFound)?;
         
         // Check transfer not already completed
         if transfer.status == TransferStatus::Completed {
-            return Err(CommonError::AlreadyInitialized);
+            return Err(BridgeError::AlreadyInitialized);
         }
         
         // Check timeout
@@ -546,7 +584,7 @@ impl BridgeContract {
         if env.ledger().timestamp() > transfer.created_at + config.transfer_timeout {
             transfer.status = TransferStatus::Failed;
             env.storage().persistent().set(&DataKey::Transfer(transfer_id), &transfer);
-            return Err(CommonError::OutOfRange); // Timeout
+            return Err(BridgeError::OutOfRange); // Timeout
         }
         
         // Increment confirmations
@@ -559,6 +597,11 @@ impl BridgeContract {
         
         // Store updated transfer
         env.storage().persistent().set(&DataKey::Transfer(transfer_id), &transfer);
+
+        // Mark attestation used.
+        env.storage()
+            .persistent()
+            .set(&DataKey::Attested(transfer_id, relayer.clone()), &true);
         
         // Update relayer stats
         let mut updated_relayer = relayer_info;
@@ -567,7 +610,7 @@ impl BridgeContract {
         
         // Emit attestation event
         env.events().publish(
-            (symbol_short!("relay_att"), relayer.clone()),
+            (Symbol::new(&env, "relay_att"), relayer.clone()),
             (transfer_id, transfer.confirmations),
         );
         
@@ -584,18 +627,18 @@ impl BridgeContract {
     /// # Returns
     /// 
     /// * `Ok(())` - Transfer completed
-    /// * `Err(CommonError)` - If not confirmed or invalid
-    pub fn complete_transfer(env: Env, transfer_id: u64) -> Result<(), CommonError> {
+    /// * `Err(BridgeError)` - If not confirmed or invalid
+    pub fn complete_transfer(env: Env, transfer_id: u64) -> Result<(), BridgeError> {
         // Get transfer
         let mut transfer: BridgeTransfer = env
             .storage()
             .persistent()
             .get(&DataKey::Transfer(transfer_id))
-            .ok_or(CommonError::KeyNotFound)?;
+            .ok_or(BridgeError::KeyNotFound)?;
         
         // Check if confirmed
         if transfer.status != TransferStatus::Confirmed {
-            return Err(CommonError::NotAuthorized);
+            return Err(BridgeError::NotAuthorized);
         }
         
         // Mint tokens on destination (mock - in production would use token contract)
@@ -612,12 +655,13 @@ impl BridgeContract {
         transfer.status = TransferStatus::Completed;
         env.storage().persistent().set(&DataKey::Transfer(transfer_id), &transfer);
         
-        // Distribute fees
+        // Distribute fees (paid out of the locked amount).
         Self::distribute_fees(&env, transfer.token.clone(), transfer.fee)?;
+        Self::unlock_liquidity(&env, transfer.token.clone(), transfer.fee)?;
         
         // Emit completion event
         env.events().publish(
-            (symbol_short!("bridge_cmp"), transfer.sender.clone()),
+            (Symbol::new(&env, "bridge_cmp"), transfer.sender.clone()),
             (transfer_id, transfer.net_amount),
         );
         
@@ -638,38 +682,38 @@ impl BridgeContract {
     /// # Returns
     /// 
     /// * `Ok(BridgeTransfer)` - New transfer request for withdrawal
-    /// * `Err(CommonError)` - If burn fails
+    /// * `Err(BridgeError)` - If burn fails
     pub fn burn_and_withdraw(
         env: Env,
         burner: Address,
         recipient: Address,
         source_chain: ChainType,
-        token: Symbol,
+        token_id: Address,
         amount: i128,
-    ) -> Result<BridgeTransfer, CommonError> {
+    ) -> Result<BridgeTransfer, BridgeError> {
         burner.require_auth();
         
         // Check if bridge is paused
         let paused: bool = env.storage().instance().get(&DataKey::Paused).unwrap_or(false);
         if paused {
-            return Err(CommonError::NotAuthorized);
+            return Err(BridgeError::NotAuthorized);
         }
         
         // Validate amount
         let config: BridgeConfig = env.storage().instance().get(&DataKey::BridgeConfig).unwrap();
         if amount < config.min_transfer_amount || amount > config.max_transfer_amount {
-            return Err(CommonError::OutOfRange);
+            return Err(BridgeError::OutOfRange);
         }
         
         // Verify burned tokens exist (mock check)
         let minted: i128 = env
             .storage()
             .persistent()
-            .get(&DataKey::MintedTokens(token.clone()))
+            .get(&DataKey::MintedTokens(token_id.clone()))
             .unwrap_or(0);
         
         if minted < amount {
-            return Err(CommonError::OutOfRange); // Insufficient burned tokens
+            return Err(BridgeError::OutOfRange); // Insufficient burned tokens
         }
         
         // Calculate fees
@@ -686,8 +730,8 @@ impl BridgeContract {
             source_chain: ChainType::EVM, // Assuming burn happens on EVM
             dest_chain: source_chain,
             sender: burner.clone(),
-            recipient: Bytes::from_slice(&env, recipient.to_string().as_bytes()),
-            token: token.clone(),
+            recipient: Bytes::from_slice(&env, &[0u8; 0]),
+            token: token_id.clone(),
             amount,
             fee,
             net_amount,
@@ -699,23 +743,106 @@ impl BridgeContract {
         
         // Store transfer
         env.storage().persistent().set(&DataKey::Transfer(nonce), &transfer);
+
+        // Store the real Soroban recipient for completion.
+        env.storage()
+            .persistent()
+            .set(&DataKey::WithdrawalRecipient(nonce), &recipient);
         
         // Track burned tokens
         let mut burned: i128 = env
             .storage()
             .persistent()
-            .get(&DataKey::BurnedTokens(token.clone()))
+            .get(&DataKey::BurnedTokens(token_id.clone()))
             .unwrap_or(0);
         burned += amount;
-        env.storage().persistent().set(&DataKey::BurnedTokens(token.clone()), &burned);
+        env.storage().persistent().set(&DataKey::BurnedTokens(token_id.clone()), &burned);
         
         // Emit event
         env.events().publish(
-            (symbol_short!("bridge_burn"), burner.clone()),
+            (Symbol::new(&env, "bridge_burn"), burner.clone()),
             (nonce, amount),
         );
         
         Ok(transfer)
+    }
+
+    /// Refund a pending transfer after timeout, returning locked funds to the sender.
+    pub fn refund_transfer(env: Env, sender: Address, transfer_id: u64) -> Result<(), BridgeError> {
+        sender.require_auth();
+
+        let mut transfer: BridgeTransfer = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Transfer(transfer_id))
+            .ok_or(BridgeError::KeyNotFound)?;
+
+        if transfer.sender != sender {
+            return Err(BridgeError::NotAuthorized);
+        }
+
+        if transfer.status == TransferStatus::Completed {
+            return Err(BridgeError::AlreadyInitialized);
+        }
+
+        let config: BridgeConfig = env.storage().instance().get(&DataKey::BridgeConfig).unwrap();
+        let now = env.ledger().timestamp();
+        if now <= transfer.created_at + config.transfer_timeout {
+            return Err(BridgeError::OutOfRange); // Not timed out yet
+        }
+
+        // Return locked funds.
+        let token_client = token::Client::new(&env, &transfer.token);
+        token_client.transfer(&env.current_contract_address(), &sender, &transfer.amount);
+        Self::unlock_liquidity(&env, transfer.token.clone(), transfer.amount)?;
+
+        transfer.status = TransferStatus::Failed;
+        env.storage().persistent().set(&DataKey::Transfer(transfer_id), &transfer);
+
+        env.events().publish(
+            (Symbol::new(&env, "bridge_ref"), sender),
+            transfer_id,
+        );
+
+        Ok(())
+    }
+
+    /// Complete a burn+withdraw transfer on Stellar by releasing locked funds to the recipient.
+    pub fn complete_withdraw(env: Env, transfer_id: u64) -> Result<(), BridgeError> {
+        let mut transfer: BridgeTransfer = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Transfer(transfer_id))
+            .ok_or(BridgeError::KeyNotFound)?;
+
+        if transfer.status != TransferStatus::Confirmed {
+            return Err(BridgeError::NotAuthorized);
+        }
+
+        let recipient: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::WithdrawalRecipient(transfer_id))
+            .ok_or(BridgeError::KeyNotFound)?;
+
+        // Pay fee, then release net amount.
+        if transfer.fee > 0 {
+            Self::distribute_fees(&env, transfer.token.clone(), transfer.fee)?;
+            Self::unlock_liquidity(&env, transfer.token.clone(), transfer.fee)?;
+        }
+        let token_client = token::Client::new(&env, &transfer.token);
+        token_client.transfer(&env.current_contract_address(), &recipient, &transfer.net_amount);
+        Self::unlock_liquidity(&env, transfer.token.clone(), transfer.net_amount)?;
+
+        transfer.status = TransferStatus::Completed;
+        env.storage().persistent().set(&DataKey::Transfer(transfer_id), &transfer);
+
+        env.events().publish(
+            (Symbol::new(&env, "bridge_wd"), recipient),
+            (transfer_id, transfer.net_amount),
+        );
+
+        Ok(())
     }
 
     /// Add new relayer (admin only)
@@ -725,12 +852,12 @@ impl BridgeContract {
     /// * `env` - Soroban environment
     /// * `admin` - Admin address
     /// * `relayer` - New relayer address
-    pub fn add_relayer(env: Env, admin: Address, relayer: Address) -> Result<(), CommonError> {
+    pub fn add_relayer(env: Env, admin: Address, relayer: Address) -> Result<(), BridgeError> {
         Self::require_admin(&env, &admin)?;
         
         // Check if already a relayer
         if env.storage().persistent().has(&DataKey::Relayer(relayer.clone())) {
-            return Err(CommonError::AlreadyInitialized);
+            return Err(BridgeError::AlreadyInitialized);
         }
         
         // Add relayer
@@ -750,7 +877,7 @@ impl BridgeContract {
         env.storage().instance().set(&DataKey::RelayerCount, &count);
         
         env.events().publish(
-            (symbol_short!("relayer_add"), admin),
+            (Symbol::new(&env, "relayer_add"), admin),
             relayer,
         );
         
@@ -764,7 +891,7 @@ impl BridgeContract {
     /// * `env` - Soroban environment
     /// * `admin` - Admin address
     /// * `relayer` - Relayer to remove
-    pub fn remove_relayer(env: Env, admin: Address, relayer: Address) -> Result<(), CommonError> {
+    pub fn remove_relayer(env: Env, admin: Address, relayer: Address) -> Result<(), BridgeError> {
         Self::require_admin(&env, &admin)?;
         
         // Set inactive
@@ -772,13 +899,13 @@ impl BridgeContract {
             .storage()
             .persistent()
             .get(&DataKey::Relayer(relayer.clone()))
-            .ok_or(CommonError::KeyNotFound)?;
+            .ok_or(BridgeError::KeyNotFound)?;
         
         relayer_info.active = false;
         env.storage().persistent().set(&DataKey::Relayer(relayer.clone()), &relayer_info);
         
         env.events().publish(
-            (symbol_short!("relayer_rem"), admin),
+            (Symbol::new(&env, "relayer_rem"), admin),
             relayer,
         );
         
@@ -786,14 +913,14 @@ impl BridgeContract {
     }
 
     /// Emergency pause (admin only)
-    pub fn pause(env: Env, admin: Address, reason: Symbol) -> Result<(), CommonError> {
+    pub fn pause(env: Env, admin: Address, reason: Symbol) -> Result<(), BridgeError> {
         Self::require_admin(&env, &admin)?;
         
         env.storage().instance().set(&DataKey::Paused, &true);
         env.storage().instance().set(&DataKey::PauseReason, &reason);
         
         env.events().publish(
-            (symbol_short!("bridge_pause"), admin),
+            (Symbol::new(&env, "bridge_pause"), admin),
             reason,
         );
         
@@ -801,15 +928,15 @@ impl BridgeContract {
     }
 
     /// Unpause bridge (admin only)
-    pub fn unpause(env: Env, admin: Address) -> Result<(), CommonError> {
+    pub fn unpause(env: Env, admin: Address) -> Result<(), BridgeError> {
         Self::require_admin(&env, &admin)?;
         
         env.storage().instance().set(&DataKey::Paused, &false);
         env.storage().instance().remove(&DataKey::PauseReason);
         
         env.events().publish(
-            (symbol_short!("bridge_unpa"), admin),
-            symbol_short!("resumed"),
+            (Symbol::new(&env, "bridge_unpa"), admin),
+            Symbol::new(&env, "resumed"),
         );
         
         Ok(())
@@ -820,13 +947,13 @@ impl BridgeContract {
         env: Env,
         admin: Address,
         config: BridgeConfig,
-    ) -> Result<(), CommonError> {
+    ) -> Result<(), BridgeError> {
         Self::require_admin(&env, &admin)?;
         env.storage().instance().set(&DataKey::BridgeConfig, &config);
         
         env.events().publish(
-            (symbol_short!("cfg_upd"), admin),
-            symbol_short!("updated"),
+            (Symbol::new(&env, "cfg_upd"), admin),
+            Symbol::new(&env, "updated"),
         );
         
         Ok(())
@@ -839,12 +966,12 @@ impl BridgeContract {
         bridge_fee_bps: u32,
         protocol_fee_bps: u32,
         slippage_bps: u32,
-    ) -> Result<(), CommonError> {
+    ) -> Result<(), BridgeError> {
         Self::require_admin(&env, &admin)?;
         
         // Validate basis points (max 10000 = 100%)
         if bridge_fee_bps > 10000 || protocol_fee_bps > 10000 || slippage_bps > 10000 {
-            return Err(CommonError::OutOfRange);
+            return Err(BridgeError::OutOfRange);
         }
         
         env.storage().instance().set(&DataKey::BridgeFeeBps, &bridge_fee_bps);
@@ -852,10 +979,79 @@ impl BridgeContract {
         env.storage().instance().set(&DataKey::SlippageToleranceBps, &slippage_bps);
         
         env.events().publish(
-            (symbol_short!("fee_upd"), admin),
+            (Symbol::new(&env, "fee_upd"), admin),
             (bridge_fee_bps, protocol_fee_bps),
         );
         
+        Ok(())
+    }
+
+    /// Set the oracle address authorized to report congestion metrics
+    pub fn set_fee_oracle(env: Env, admin: Address, oracle: Address) -> Result<(), BridgeError> {
+        Self::require_admin(&env, &admin)?;
+        env.storage().instance().set(&DataKey::FeeOracle, &oracle);
+        env.events().publish((Symbol::new(&env, "fee_oracle_set"), admin), oracle);
+        Ok(())
+    }
+
+    /// Enable or disable dynamic fees (admin only)
+    pub fn set_dynamic_fee_enabled(env: Env, admin: Address, enabled: bool) -> Result<(), BridgeError> {
+        Self::require_admin(&env, &admin)?;
+        env.storage().instance().set(&DataKey::DynamicFeeEnabled, &enabled);
+        env.events().publish((Symbol::new(&env, "dynamic_fee_toggled"), admin), enabled);
+        Ok(())
+    }
+
+    /// Set dynamic fee parameters (admin only)
+    pub fn set_dynamic_fee_params(env: Env, admin: Address, congestion_threshold_bps: u32, max_extra_fee_bps: u32) -> Result<(), BridgeError> {
+        Self::require_admin(&env, &admin)?;
+        if congestion_threshold_bps >= 10000 || max_extra_fee_bps > 10000 {
+            return Err(BridgeError::OutOfRange);
+        }
+        env.storage().instance().set(&DataKey::CongestionThresholdBps, &congestion_threshold_bps);
+        env.storage().instance().set(&DataKey::MaxExtraFeeBps, &max_extra_fee_bps);
+        env.events().publish((Symbol::new(&env, "dynamic_fee_params"), admin), (congestion_threshold_bps, max_extra_fee_bps));
+        Ok(())
+    }
+
+    /// Oracle-only entrypoint: report current congestion (in basis points, 0..10000)
+    /// The oracle address must be set via `set_fee_oracle` and must `require_auth()`.
+    pub fn report_congestion(env: Env, oracle: Address, congestion_bps: u32) -> Result<(), BridgeError> {
+        // oracle must sign the call
+        oracle.require_auth();
+
+        // check registered oracle
+        let registered: Address = env.storage().instance().get(&DataKey::FeeOracle).unwrap();
+        if registered != oracle {
+            return Err(BridgeError::NotAuthorized);
+        }
+
+        if congestion_bps > 10000 {
+            return Err(BridgeError::OutOfRange);
+        }
+
+        // Compute extra fee and update dynamic fee bps
+        let base_bps: u32 = env.storage().instance().get(&DataKey::BridgeFeeBps).unwrap();
+        let threshold: u32 = env.storage().instance().get(&DataKey::CongestionThresholdBps).unwrap_or(7000u32);
+        let max_extra: u32 = env.storage().instance().get(&DataKey::MaxExtraFeeBps).unwrap_or(200u32);
+
+        let extra_bps: u32 = if congestion_bps <= threshold {
+            0
+        } else {
+            // scale extra proportionally between threshold..10000
+            let num: u128 = (congestion_bps - threshold) as u128;
+            let den: u128 = (10000 - threshold) as u128;
+            (((num * max_extra as u128) + (den / 2)) / den) as u32
+        };
+
+        let dynamic_bps = base_bps.saturating_add(extra_bps);
+        env.storage().instance().set(&DataKey::DynamicBridgeFeeBps, &dynamic_bps);
+
+        env.events().publish(
+            (Symbol::new(&env, "dynamic_fee_update"), oracle),
+            (congestion_bps, dynamic_bps),
+        );
+
         Ok(())
     }
 
@@ -876,28 +1072,41 @@ impl BridgeContract {
         }
     }
 
+    /// Return the currently configured dynamic bridge fee BPS (if any).
+    pub fn get_dynamic_bridge_fee(env: Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&DataKey::DynamicBridgeFeeBps)
+            .unwrap_or(0u32)
+    }
+
+    /// Return the configured static bridge fee BPS.
+    pub fn get_bridge_fee_bps(env: Env) -> u32 {
+        env.storage().instance().get(&DataKey::BridgeFeeBps).unwrap_or(0u32)
+    }
+
     /// Get transfer by ID
-    pub fn get_transfer(env: Env, transfer_id: u64) -> Result<BridgeTransfer, CommonError> {
+    pub fn get_transfer(env: Env, transfer_id: u64) -> Result<BridgeTransfer, BridgeError> {
         env.storage()
             .persistent()
             .get(&DataKey::Transfer(transfer_id))
-            .ok_or(CommonError::KeyNotFound)
+            .ok_or(BridgeError::KeyNotFound)
     }
 
     /// Get relayer info
-    pub fn get_relayer_info(env: Env, relayer: Address) -> Result<RelayerInfo, CommonError> {
+    pub fn get_relayer_info(env: Env, relayer: Address) -> Result<RelayerInfo, BridgeError> {
         env.storage()
             .persistent()
             .get(&DataKey::Relayer(relayer))
-            .ok_or(CommonError::KeyNotFound)
+            .ok_or(BridgeError::KeyNotFound)
     }
 
     /// Get liquidity pool info
-    pub fn get_liquidity_pool(env: Env, token: Symbol) -> Result<LiquidityPool, CommonError> {
+    pub fn get_liquidity_pool(env: Env, token_id: Address) -> Result<LiquidityPool, BridgeError> {
         env.storage()
             .persistent()
-            .get(&DataKey::LiquidityPool(token))
-            .ok_or(CommonError::KeyNotFound)
+            .get(&DataKey::LiquidityPool(token_id))
+            .ok_or(BridgeError::KeyNotFound)
     }
 
     /// Health check function for monitoring
@@ -920,34 +1129,46 @@ impl BridgeContract {
     // Internal Helper Functions
     // ========================================================================
 
-    /// Calculate fees for a transfer
-    fn calculate_fees(env: &Env, amount: i128) -> Result<(i128, i128), CommonError> {
-        let bridge_fee_bps: u32 = env.storage().instance().get(&DataKey::BridgeFeeBps).unwrap();
+    /// Calculate fees for a transfer. If dynamic fees are enabled, use the
+    /// latest computed dynamic bridge fee BPS; otherwise use the static value.
+    fn calculate_fees(env: &Env, amount: i128) -> Result<(i128, i128), BridgeError> {
+        let dynamic_enabled: bool = env.storage().instance().get(&DataKey::DynamicFeeEnabled).unwrap_or(false);
+
+        let bridge_fee_bps: u32 = if dynamic_enabled {
+            env.storage().instance().get(&DataKey::DynamicBridgeFeeBps).unwrap_or(env.storage().instance().get(&DataKey::BridgeFeeBps).unwrap())
+        } else {
+            env.storage().instance().get(&DataKey::BridgeFeeBps).unwrap()
+        };
+
         let protocol_fee_bps: u32 = env.storage().instance().get(&DataKey::ProtocolFeeBps).unwrap();
-        
+
         let bridge_fee = (amount * bridge_fee_bps as i128) / 10000;
         let protocol_fee = (amount * protocol_fee_bps as i128) / 10000;
         let total_fee = bridge_fee + protocol_fee;
         let net_amount = amount - total_fee;
-        
+
         Ok((total_fee, net_amount))
     }
 
     /// Distribute collected fees
-    fn distribute_fees(env: &Env, token: Symbol, fee: i128) -> Result<(), CommonError> {
+    fn distribute_fees(env: &Env, token_id: Address, fee: i128) -> Result<(), BridgeError> {
         let fee_recipient: Address = env.storage().instance().get(&DataKey::FeeRecipient).unwrap();
-        
-        // Mock distribution (in production would transfer tokens)
+
+        if fee > 0 {
+            let token_client = token::Client::new(env, &token_id);
+            token_client.transfer(&env.current_contract_address(), &fee_recipient, &fee);
+        }
+
         env.events().publish(
-            (symbol_short!("fee_dist"), fee_recipient),
-            (token, fee),
+            (Symbol::new(env, "fee_dist"), fee_recipient),
+            (token_id, fee),
         );
         
         Ok(())
     }
 
     /// Check rate limit for token
-    fn check_rate_limit(env: &Env, token: Symbol, amount: i128) -> Result<(), CommonError> {
+    fn check_rate_limit(env: &Env, token_id: Address, amount: i128) -> Result<(), BridgeError> {
         let config: BridgeConfig = env.storage().instance().get(&DataKey::BridgeConfig).unwrap();
         
         // Get daily limit
@@ -957,71 +1178,103 @@ impl BridgeContract {
         let current_time = env.ledger().timestamp();
         let day_start = (current_time / SECONDS_PER_DAY) * SECONDS_PER_DAY;
         
-        let mut used: i128 = env
+        let used: i128 = env
             .storage()
             .persistent()
-            .get(&DataKey::RateLimitUsed(token.clone(), day_start))
+            .get(&DataKey::RateLimitUsed(token_id.clone(), day_start))
             .unwrap_or(0);
         
         // Check if would exceed limit
         if used + amount > daily_limit {
-            return Err(CommonError::OutOfRange);
+            return Err(BridgeError::OutOfRange);
         }
         
         Ok(())
     }
 
     /// Update rate limit usage
-    fn update_rate_limit(env: &Env, token: Symbol, amount: i128) -> Result<(), CommonError> {
+    fn update_rate_limit(env: &Env, token_id: Address, amount: i128) -> Result<(), BridgeError> {
         let current_time = env.ledger().timestamp();
         let day_start = (current_time / SECONDS_PER_DAY) * SECONDS_PER_DAY;
         
         let mut used: i128 = env
             .storage()
             .persistent()
-            .get(&DataKey::RateLimitUsed(token.clone(), day_start))
+            .get(&DataKey::RateLimitUsed(token_id.clone(), day_start))
             .unwrap_or(0);
         
         used += amount;
-        env.storage().persistent().set(&DataKey::RateLimitUsed(token, day_start), &used);
+        env.storage()
+            .persistent()
+            .set(&DataKey::RateLimitUsed(token_id, day_start), &used);
         
         Ok(())
     }
 
     /// Lock liquidity for transfer
-    fn lock_liquidity(env: &Env, token: Symbol, amount: i128) -> Result<(), CommonError> {
+    fn lock_liquidity(env: &Env, token_id: Address, amount: i128) -> Result<(), BridgeError> {
         // Get or create liquidity pool
         let mut pool: LiquidityPool = env
             .storage()
             .persistent()
-            .get(&DataKey::LiquidityPool(token.clone()))
+            .get(&DataKey::LiquidityPool(token_id.clone()))
             .unwrap_or_else(|| LiquidityPool {
-                token: token.clone(),
+                token: token_id.clone(),
                 total_liquidity: 0,
                 available: 0,
                 locked: 0,
                 target_allocation: 0,
             });
+
+        // Deposits add to total liquidity held by the bridge contract.
+        pool.total_liquidity += amount;
         
         // Lock amount
         pool.locked += amount;
         pool.available = pool.total_liquidity - pool.locked;
         
-        env.storage().persistent().set(&DataKey::LiquidityPool(token), &pool);
+        env.storage()
+            .persistent()
+            .set(&DataKey::LiquidityPool(token_id), &pool);
         
         Ok(())
     }
 
+    fn unlock_liquidity(env: &Env, token_id: Address, amount: i128) -> Result<(), BridgeError> {
+        let mut pool: LiquidityPool = env
+            .storage()
+            .persistent()
+            .get(&DataKey::LiquidityPool(token_id.clone()))
+            .unwrap_or_else(|| LiquidityPool {
+                token: token_id.clone(),
+                total_liquidity: 0,
+                available: 0,
+                locked: 0,
+                target_allocation: 0,
+            });
+
+        if amount > pool.locked {
+            return Err(BridgeError::OutOfRange);
+        }
+        pool.locked -= amount;
+        pool.total_liquidity -= amount;
+        pool.available = pool.total_liquidity - pool.locked;
+        env.storage()
+            .persistent()
+            .set(&DataKey::LiquidityPool(token_id), &pool);
+        Ok(())
+    }
+
     /// Require admin authorization
-    fn require_admin(env: &Env, admin: &Address) -> Result<(), CommonError> {
+    fn require_admin(env: &Env, admin: &Address) -> Result<(), BridgeError> {
         let stored_admin: Address = env
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .ok_or(CommonError::NotInitialized)?;
+            .ok_or(BridgeError::NotInitialized)?;
         
         if stored_admin != *admin {
-            return Err(CommonError::NotAuthorized);
+            return Err(BridgeError::NotAuthorized);
         }
         
         admin.require_auth();
