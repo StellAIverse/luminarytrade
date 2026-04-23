@@ -33,6 +33,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { LoggingModule } from './logging/logging.module';
 import { AlertingModule } from './alerting/alerting.module';
+import { WaitlistModule } from './modules/waitlist/waitlist.module';
 import { GrowthModule } from './growth/growth.module';
 
 // i18n
@@ -61,24 +62,6 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
       useFactory: () => {
         const factory = new CacheConfigFactory();
         return factory.createConfig();
-<<<<<<< HEAD
-    require('./tracing/tracing.module').TracingModule,
-    require('./transaction/transaction.module').TransactionModule,
-    require('./simulator/simulator.module').SimulatorModule,
-    require('./submitter/submitter.module').SubmitterModule,
-    require('./compute-bridge/compute-bridge.module').ComputeBridgeModule,
-    require('./agent/agent.module').IndexerModule,
-    require('./audit/audit-log.module').AuditLogModule,
-    require('./worker/worker.module').WorkerModule,
-    require('./oracle/oracle.module').OracleModule,
-    require('./rate-limiting/rate-limiting.module').RateLimitingModule,
-    require('./auth/auth.module').AuthModule,
-    require('./materialized-view/materialized-view.module').MaterializedViewsModule,
-    require('./middleware-pipeline/middleware-pipeline.module').MiddlewarePipelineModule,
-    require('./decorator-composition/decorator-composition.module').DecoratorCompositionModule,
-    require('./graphql/graphql.module').GraphqlApiModule,
-    require('./analytics/analytics.module').AnalyticsModule,
-=======
       },
     }),
 
@@ -105,9 +88,9 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
     MaterializedViewsModule,
     MiddlewarePipelineModule,
     DecoratorCompositionModule,
->>>>>>> 3a688f4b8d65b85eb8467d78fdd8af2d8811c2d4
     GraphqlApiModule,
     AnalyticsModule,
+    WaitlistModule,
     GrowthModule,
   ],
   providers: [

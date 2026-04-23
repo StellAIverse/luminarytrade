@@ -15,6 +15,7 @@ const GrowthHub = lazy(() => import("./components/GrowthHub"));
 const ResponsiveExamples = lazy(
   () => import("./components/examples/ResponsiveComponentExamples"),
 );
+const Waitlist = lazy(() => import("./components/Waitlist"));
 
 const Loading: React.FC = () => (
   <Box sx={{ py: 6, textAlign: "center" }}>
@@ -63,6 +64,11 @@ const App: React.FC = () => {
       label: "Responsive Examples",
       prefetch: () =>
         import("./components/examples/ResponsiveComponentExamples"),
+    },
+    {
+      to: "/waitlist",
+      label: "Waitlist",
+      prefetch: () => import("./components/Waitlist"),
     },
   ];
 
@@ -145,6 +151,7 @@ const App: React.FC = () => {
               <Route path="/transactions" element={<TransactionPage />} />
               <Route path="/growth" element={<GrowthHub />} />
             </Route>
+            <Route path="/waitlist" element={<Waitlist />} />
             <Route
               path="/responsive-examples"
               element={<ResponsiveExamples />}
