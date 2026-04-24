@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useRealtimeDashboard } from '../hooks/useRealtimeDashboard';
 import { useWebSocket } from '../context/WebSocketContext';
+import { useAuth } from '../context/AuthContext';
 import { FraudHeatmapCell, TimeWindow } from '../types/dashboard.types';
 import TimeWindowSelector from './dashboard/TimeWindowSelector';
 import CreditScoreTrendChart from './dashboard/CreditScoreTrendChart';
@@ -19,6 +20,7 @@ import AgentPerformanceChart from './dashboard/AgentPerformanceChart';
 import RiskDistributionChart from './dashboard/RiskDistributionChart';
 import ConnectionStatusBar from './dashboard/ConnectionStatusBar';
 import LiveAlertFeed from './dashboard/LiveAlertFeed';
+import WaitlistStatus from './WaitlistStatus';
 import { printDashboard } from '../utils/exportUtils';
 import { useResponsive } from '../hooks/useResponsive';
 import { spacing } from '../styles/theme';
@@ -308,6 +310,11 @@ const Dashboard: React.FC = () => {
           />
         </div>
       )}
+
+      {/* Waitlist Status */}
+      <div style={{ marginBottom: spacing.lg }}>
+        <WaitlistStatus userEmail={user?.email} />
+      </div>
 
       {/* Chart Grid */}
       <div style={{
