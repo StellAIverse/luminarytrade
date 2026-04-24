@@ -36,7 +36,9 @@ export const store = configureStore({
         // Ignore these paths in the state
         ignoredPaths: ['realtime.socket'],
       },
-    }),
+    })
+    // Add RTK Query middleware for caching and request deduplication
+    .concat(baseApi.middleware),
 });
 
 export type AppDispatch = typeof store.dispatch;
