@@ -97,6 +97,20 @@
             }
         }
     },
+    "auth": {
+        "login": {
+            "title": "欢迎回来",
+            "subtitle": "使用电子邮件、钱包或社交账户登录。",
+            "noAccount": "没有账户？",
+            "signUpLink": "注册"
+        },
+        "signup": {
+            "title": "创建您的账户",
+            "subtitle": "注册以保护您的会话并访问受保护的工具。",
+            "haveAccount": "已有账户？",
+            "signInLink": "登录"
+        }
+    },
     "language": {
         "switcher": "语言",
         "en": "英语",

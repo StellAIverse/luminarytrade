@@ -7,11 +7,12 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useRealtimeDashboard } from '../hooks/useRealtimeDashboard';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
-import { FraudHeatmapCell, TimeWindow } from '../types/dashboard.types';
+import { FraudHeatmapCell } from '../types/dashboard.types';
 import TimeWindowSelector from './dashboard/TimeWindowSelector';
 import CreditScoreTrendChart from './dashboard/CreditScoreTrendChart';
 import FraudRiskHeatmap from './dashboard/FraudRiskHeatmap';
@@ -87,97 +88,94 @@ interface DrillDownModalProps {
   onClose: () => void;
 }
 
-const DrillDownModal: React.FC<DrillDownModalProps> = ({ cell, onClose }) => (
-  <div
-    data-testid="drilldown-modal"
-    style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 1000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(0,0,0,0.6)',
-      backdropFilter: 'blur(4px)',
-    }}
-    onClick={onClose}
-  >
+const DrillDownModal: React.FC<DrillDownModalProps> = ({ cell, onClose }) => {
+  const { t } = useTranslation();
+
+  return (
     <div
-      onClick={(e) => e.stopPropagation()}
+      data-testid="drilldown-modal"
       style={{
-        background: '#1e1e2f',
-        borderRadius: 16,
-        border: '1px solid rgba(255,255,255,0.1)',
-        padding: '28px 32px',
-        minWidth: 340,
-        boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(4px)',
       }}
+      onClick={onClose}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>Fraud Detail</h3>
-        <button
-          onClick={onClose}
-          style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: 'none',
-            borderRadius: 6,
-            color: '#94a3b8',
-            padding: '4px 10px',
-            cursor: 'pointer',
-            fontSize: 16,
-          }}
-        >
-          ✕
-        </button>
-      </div>
-      <div style={{ display: 'grid', gap: 12 }}>
-        {[
-          { label: 'Day', value: cell.dayLabel },
-          { label: 'Hour', value: `${String(cell.hour).padStart(2, '0')}:00 – ${String(cell.hour + 1).padStart(2, '0')}:00` },
-          { label: 'Alert Count', value: cell.count },
-          { label: 'Severity', value: cell.severity.toUpperCase() },
-        ].map((row) => (
-          <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <span style={{ fontSize: 13, color: '#64748b' }}>{row.label}</span>
-            <span style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600 }}>{row.value}</span>
-          </div>
-        ))}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#1e1e2f',
+          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.1)',
+          padding: '28px 32px',
+          minWidth: 340,
+          boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#e2e8f0' }}>
+            {t('dashboard.fraud.detail')}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: 'none',
+              borderRadius: 6,
+              color: '#94a3b8',
+              padding: '4px 10px',
+              cursor: 'pointer',
+              fontSize: 16,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+        <div style={{ display: 'grid', gap: 12 }}>
+          {[
+            { label: t('dashboard.fraud.day'),        value: cell.dayLabel },
+            { label: t('dashboard.fraud.hour'),       value: `${String(cell.hour).padStart(2, '0')}:00 – ${String(cell.hour + 1).padStart(2, '0')}:00` },
+            { label: t('dashboard.fraud.alertCount'), value: cell.count },
+            { label: t('dashboard.fraud.severity'),   value: cell.severity.toUpperCase() },
+          ].map((row) => (
+            <div
+              key={row.label}
+              style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+            >
+              <span style={{ fontSize: 13, color: '#64748b' }}>{row.label}</span>
+              <span style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600 }}>{row.value}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { data, loading, error, timeWindow, setTimeWindow, refresh } = useDashboardData('7D');
-  const { summaryPatch, liveScorePoints, liveFraudCells, hasLiveData } = useRealtimeDashboard();
+  const { summaryPatch, liveScorePoints, liveFraudCells, hasLiveData, latestBonuses } = useRealtimeDashboard();
   const { status, latency } = useWebSocket();
   const { user } = useAuth();
   const [drillDownCell, setDrillDownCell] = useState<FraudHeatmapCell | null>(null);
   const { isMobile, isTablet } = useResponsive();
 
   const addNotification = useNotification();
-  const latestBonuses = useRealtimeDashboard().latestBonuses;
 
   // Merge live realtime patches on top of snapshot data
-  const mergedSummary = data
-    ? { ...data.summary, ...summaryPatch }
-    : null;
-
-  const mergedScoreTrend = [
-    ...liveScorePoints,
-    ...(data?.creditScoreTrend ?? []),
-  ].slice(0, 100);
-
-  const mergedFraudHeatmap = [
-    ...(data?.fraudHeatmap ?? []),
-    ...liveFraudCells,
-  ];
-
+  const mergedSummary = data ? { ...data.summary, ...summaryPatch } : null;
+  const mergedScoreTrend = [...liveScorePoints, ...(data?.creditScoreTrend ?? [])].slice(0, 100);
+  const mergedFraudHeatmap = [...(data?.fraudHeatmap ?? []), ...liveFraudCells];
   const mergedTradingBonuses = data?.tradingBonuses ?? [];
   const mergedBonusBreakdown = data?.bonusBreakdown ?? [];
-  const mergedBonusHistory = data?.bonusHistory ?? [];
 
   // Bonus notifications
   useEffect(() => {
@@ -185,13 +183,17 @@ const Dashboard: React.FC = () => {
       const latest = latestBonuses[0];
       addNotification(
         createSuccessNotification(
-          `+${latest.amount} tokens from ${latest.type} bonus - ${latest.description}`,
-          'New Trading Bonus!',
+          t('dashboard.bonus.notification', {
+            amount: latest.amount,
+            type: latest.type,
+            description: latest.description,
+          }),
+          t('dashboard.bonus.title'),
           6000
         )
       );
     }
-  }, [latestBonuses, addNotification]);
+  }, [latestBonuses, addNotification, t]);
 
   return (
     <div style={{
@@ -201,6 +203,7 @@ const Dashboard: React.FC = () => {
       padding: isMobile ? `${spacing.md}px` : isTablet ? `${spacing.lg}px` : `${spacing.xl}px`,
       color: '#e2e8f0',
     }}>
+
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -220,57 +223,45 @@ const Dashboard: React.FC = () => {
             WebkitTextFillColor: 'transparent',
             letterSpacing: '-0.01em',
           }}>
-            Analytics Dashboard
+            {t('dashboard.title')}
           </h1>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-            Real-time insights & performance metrics
+            {t('dashboard.subtitle')}
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          {/* WebSocket status indicator */}
-          <ConnectionStatusBar
-            status={status}
-            latency={latency}
-            hasLiveData={hasLiveData}
-          />
-
+          <ConnectionStatusBar status={status} latency={latency} hasLiveData={hasLiveData} />
           <TimeWindowSelector value={timeWindow} onChange={setTimeWindow} />
+
           <button
             data-testid="refresh-button"
             onClick={refresh}
             style={{
-              padding: '8px 16px',
-              borderRadius: 10,
+              padding: '8px 16px', borderRadius: 10,
               border: '1px solid rgba(255,255,255,0.1)',
               background: 'rgba(255,255,255,0.04)',
-              color: '#94a3b8',
-              fontSize: 13,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
+              color: '#94a3b8', fontSize: 13, cursor: 'pointer', transition: 'all 0.2s',
             }}
             onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; }}
             onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
           >
-            ↻ Refresh
+            ↻ {t('common.refresh')}
           </button>
+
           <button
             data-testid="print-button"
             onClick={printDashboard}
             style={{
-              padding: '8px 16px',
-              borderRadius: 10,
+              padding: '8px 16px', borderRadius: 10,
               border: '1px solid rgba(255,255,255,0.1)',
               background: 'rgba(255,255,255,0.04)',
-              color: '#94a3b8',
-              fontSize: 13,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
+              color: '#94a3b8', fontSize: 13, cursor: 'pointer', transition: 'all 0.2s',
             }}
             onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; }}
             onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
           >
-            🖨 Print
+            🖨 {t('common.print')}
           </button>
         </div>
       </div>
@@ -281,10 +272,7 @@ const Dashboard: React.FC = () => {
           padding: '16px 20px',
           background: 'rgba(239,68,68,0.1)',
           border: '1px solid rgba(239,68,68,0.2)',
-          borderRadius: 12,
-          color: '#fca5a5',
-          fontSize: 14,
-          marginBottom: 20,
+          borderRadius: 12, color: '#fca5a5', fontSize: 14, marginBottom: 20,
         }}>
           ⚠ {error}
         </div>
@@ -299,41 +287,41 @@ const Dashboard: React.FC = () => {
           marginBottom: spacing.lg,
         }}>
           <StatCard
-            label="Total Transactions"
+            label={t('dashboard.stats.totalTransactions')}
             value={mergedSummary.totalTransactions}
             icon="📊"
             color="#6366f1"
             trend={`Avg $${data?.volumeStatistics.avg.toLocaleString() ?? '—'}`}
           />
           <StatCard
-            label="Avg Credit Score"
+            label={t('dashboard.stats.avgCreditScore')}
             value={mergedSummary.avgCreditScore}
             icon="📈"
             color="#22c55e"
             trend={`Min ${data?.scoreStatistics.min ?? '—'} · Max ${data?.scoreStatistics.max ?? '—'}`}
           />
           <StatCard
-            label="Fraud Alerts"
+            label={t('dashboard.stats.fraudAlerts')}
             value={mergedSummary.fraudAlerts}
             icon="🛡"
             color="#f59e0b"
             trend={`${data?.riskDistribution.find((r) => r.name === 'Critical')?.value ?? 0}% critical`}
           />
           <StatCard
-            label="Active Agents"
+            label={t('dashboard.stats.activeAgents')}
             value={mergedSummary.activeAgents}
             icon="🤖"
             color="#22d3ee"
           />
-<StatCard
-            label="Risk Score"
+          <StatCard
+            label={t('dashboard.stats.riskScore')}
             value={`${mergedSummary.riskScore}%`}
             icon="⚡"
             color="#ef4444"
             trend={`σ ${data?.scoreStatistics.stddev ?? '—'}`}
           />
           <StatCard
-            label="Trading Bonuses"
+            label={t('dashboard.stats.tradingBonuses')}
             value={`$${(data?.tradingBonuses?.reduce((s, p) => s + p.bonusAmount, 0) ?? 0).toLocaleString()}`}
             icon="💰"
             color="#22c55e"
@@ -344,7 +332,7 @@ const Dashboard: React.FC = () => {
 
       {/* Waitlist Status */}
       <div style={{ marginBottom: spacing.lg }}>
-        <WaitlistStatus userEmail={user?.email || ""} />
+        <WaitlistStatus userEmail={user?.email || ''} />
       </div>
 
       {/* Chart Grid */}
@@ -357,14 +345,8 @@ const Dashboard: React.FC = () => {
             : 'repeat(auto-fit, minmax(420px, 1fr))',
         gap: spacing.lg,
       }}>
-        <CreditScoreTrendChart
-          data={mergedScoreTrend}
-          loading={loading}
-        />
-        <TransactionVolumeChart
-          data={data?.transactionVolume ?? []}
-          loading={loading}
-        />
+        <CreditScoreTrendChart data={mergedScoreTrend} loading={loading} />
+        <TransactionVolumeChart data={data?.transactionVolume ?? []} loading={loading} />
         <div style={{ gridColumn: 'span 1' }}>
           <FraudRiskHeatmap
             data={mergedFraudHeatmap}
@@ -372,26 +354,13 @@ const Dashboard: React.FC = () => {
             onCellClick={(cell) => setDrillDownCell(cell)}
           />
         </div>
-        <RiskDistributionChart
-          data={data?.riskDistribution ?? []}
-          loading={loading}
-        />
+        <RiskDistributionChart data={data?.riskDistribution ?? []} loading={loading} />
         <div style={{ gridColumn: '1 / -1' }}>
-          <TradingBonusesChart
-            data={mergedTradingBonuses}
-            breakdown={mergedBonusBreakdown}
-            loading={loading}
-          />
+          <TradingBonusesChart data={mergedTradingBonuses} breakdown={mergedBonusBreakdown} loading={loading} />
         </div>
-
         <div style={{ gridColumn: '1 / -1' }}>
-          <AgentPerformanceChart
-            data={data?.agentPerformance ?? []}
-            loading={loading}
-          />
+          <AgentPerformanceChart data={data?.agentPerformance ?? []} loading={loading} />
         </div>
-
-        {/* Live alert feed — full width, only shown when WS is active */}
         {(status === 'connected' || hasLiveData) && (
           <div style={{ gridColumn: '1 / -1' }}>
             <LiveAlertFeed maxVisible={12} />
@@ -401,10 +370,7 @@ const Dashboard: React.FC = () => {
 
       {/* Drill-down Modal */}
       {drillDownCell && (
-        <DrillDownModal
-          cell={drillDownCell}
-          onClose={() => setDrillDownCell(null)}
-        />
+        <DrillDownModal cell={drillDownCell} onClose={() => setDrillDownCell(null)} />
       )}
 
       {/* Print styles */}

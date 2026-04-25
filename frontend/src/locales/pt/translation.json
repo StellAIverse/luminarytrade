@@ -97,6 +97,20 @@
             }
         }
     },
+    "auth": {
+        "login": {
+            "title": "Bem-vindo de volta",
+            "subtitle": "Entre com e-mail, carteira ou conta social.",
+            "noAccount": "Não tem conta?",
+            "signUpLink": "Cadastrar"
+        },
+        "signup": {
+            "title": "Crie sua conta",
+            "subtitle": "Cadastre-se para proteger sua sessão e acessar as ferramentas.",
+            "haveAccount": "Já tem uma conta?",
+            "signInLink": "Entrar"
+        }
+    },
     "language": {
         "switcher": "Idioma",
         "en": "Inglês",

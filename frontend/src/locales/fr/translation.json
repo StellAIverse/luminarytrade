@@ -97,6 +97,20 @@
             }
         }
     },
+    "auth": {
+        "login": {
+            "title": "Content de vous revoir",
+            "subtitle": "Connectez-vous avec e-mail, portefeuille ou compte social.",
+            "noAccount": "Pas de compte ?",
+            "signUpLink": "S'inscrire"
+        },
+        "signup": {
+            "title": "Créer votre compte",
+            "subtitle": "Inscrivez-vous pour sécuriser votre session et accéder aux outils protégés.",
+            "haveAccount": "Vous avez déjà un compte ?",
+            "signInLink": "Se connecter"
+        }
+    },
     "language": {
         "switcher": "Langue",
         "en": "Anglais",

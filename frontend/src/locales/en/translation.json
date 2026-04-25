@@ -97,6 +97,20 @@
             }
         }
     },
+    "auth": {
+        "login": {
+            "title": "Welcome back",
+            "subtitle": "Sign in with email, wallet, or social account.",
+            "noAccount": "No account?",
+            "signUpLink": "Sign up"
+        },
+        "signup": {
+            "title": "Create your account",
+            "subtitle": "Sign up to secure your session and access protected tools.",
+            "haveAccount": "Already have an account?",
+            "signInLink": "Sign in"
+        }
+    },
     "language": {
         "switcher": "Language",
         "en": "English",

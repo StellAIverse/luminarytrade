@@ -97,6 +97,20 @@
             }
         }
     },
+    "auth": {
+        "login": {
+            "title": "Bienvenido de nuevo",
+            "subtitle": "Inicia sesión con correo, billetera o cuenta social.",
+            "noAccount": "¿No tienes cuenta?",
+            "signUpLink": "Registrarse"
+        },
+        "signup": {
+            "title": "Crea tu cuenta",
+            "subtitle": "Regístrate para proteger tu sesión y acceder a las herramientas.",
+            "haveAccount": "¿Ya tienes una cuenta?",
+            "signInLink": "Iniciar sesión"
+        }
+    },
     "language": {
         "switcher": "Idioma",
         "en": "Inglés",
