@@ -1,0 +1,109 @@
+{
+    "nav": {
+        "dashboard": "Tableau de bord",
+        "creditScoring": "Score de crédit",
+        "fraudDetection": "Détection de fraude",
+        "wallet": "Portefeuille",
+        "transactions": "Transactions",
+        "growthHub": "Hub de croissance",
+        "responsiveExamples": "Exemples adaptatifs",
+        "waitlist": "Liste d'attente",
+        "login": "Connexion",
+        "signUp": "S'inscrire",
+        "logout": "Déconnexion"
+    },
+    "common": {
+        "loading": "Chargement...",
+        "refresh": "Actualiser",
+        "print": "Imprimer",
+        "error": "Erreur",
+        "back": "Retour",
+        "submit": "Soumettre",
+        "cancel": "Annuler",
+        "close": "Fermer"
+    },
+    "dashboard": {
+        "title": "Tableau de bord analytique",
+        "subtitle": "Analyses en temps réel et métriques de performance",
+        "stats": {
+            "totalTransactions": "Total des transactions",
+            "avgCreditScore": "Score de crédit moyen",
+            "fraudAlerts": "Alertes de fraude",
+            "activeAgents": "Agents actifs",
+            "riskScore": "Score de risque",
+            "tradingBonuses": "Bonus de trading"
+        },
+        "fraud": {
+            "detail": "Détail de la fraude",
+            "day": "Jour",
+            "hour": "Heure",
+            "alertCount": "Nombre d'alertes",
+            "severity": "Gravité"
+        },
+        "bonus": {
+            "notification": "+{{amount}} jetons du bonus {{type}} - {{description}}",
+            "title": "Nouveau bonus de trading !"
+        }
+    },
+    "waitlist": {
+        "title": "Rejoindre la liste d'attente",
+        "subtitle": "Soyez le premier à savoir quand nous lançons de nouvelles fonctionnalités de trading IA.",
+        "form": {
+            "fullName": "Nom complet",
+            "emailAddress": "Adresse e-mail",
+            "joinButton": "Rejoindre la liste d'attente",
+            "checkStatus": "Déjà inscrit ? Vérifiez votre statut"
+        },
+        "states": {
+            "verifying": "Vérification de votre e-mail...",
+            "verified": {
+                "alert": "Votre e-mail a été vérifié ! Vous êtes maintenant sur la liste d'attente.",
+                "body": "Nous vous informerons quand ce sera votre tour d'accéder à LuminaryTrade.",
+                "backButton": "Retour à la liste d'attente"
+            },
+            "pending": {
+                "alert": "E-mail de confirmation envoyé !",
+                "title": "Vérifiez votre e-mail",
+                "body": "Nous avons envoyé un lien de vérification à {{email}}.",
+                "checkStatusButton": "Vérifier le statut",
+                "backButton": "Retour au formulaire"
+            }
+        },
+        "notifications": {
+            "emailVerified": {
+                "title": "E-mail vérifié",
+                "message": "Votre e-mail a été vérifié avec succès !"
+            },
+            "verificationFailed": {
+                "title": "Échec de la vérification"
+            },
+            "joined": {
+                "title": "Liste d'attente rejointe",
+                "message": "Vous avez rejoint la liste d'attente avec succès !"
+            },
+            "confirmationSent": {
+                "title": "E-mail de confirmation envoyé",
+                "message": "Veuillez vérifier votre e-mail pour confirmer votre place."
+            },
+            "statusCheck": {
+                "title": "Statut de la liste d'attente",
+                "message": "Statut : {{status}}, E-mail vérifié : {{verified}}"
+            },
+            "notFound": "E-mail introuvable sur la liste d'attente",
+            "joinFailed": "Impossible de rejoindre la liste d'attente",
+            "verifyFailed": "Impossible de vérifier l'e-mail",
+            "error": {
+                "title": "Erreur"
+            }
+        }
+    },
+    "language": {
+        "switcher": "Langue",
+        "en": "Anglais",
+        "fr": "Français",
+        "ar": "Arabe",
+        "es": "Espagnol",
+        "pt": "Portugais",
+        "zh": "Chinois"
+    }
+}

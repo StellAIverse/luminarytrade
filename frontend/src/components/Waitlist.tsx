@@ -9,7 +9,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import { useNotification } from "./contexts/NotificationContext";
+import { useNotification } from "../contexts/NotificationContext";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiClient } from "../services/api/ApiClient";
 

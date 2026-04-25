@@ -6,12 +6,11 @@
  * and real-time WebSocket data updates.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useRealtimeDashboard } from '../hooks/useRealtimeDashboard';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
-import { useNotification } from '../context/NotificationContext';
 import { FraudHeatmapCell, TimeWindow } from '../types/dashboard.types';
 import TimeWindowSelector from './dashboard/TimeWindowSelector';
 import CreditScoreTrendChart from './dashboard/CreditScoreTrendChart';
@@ -25,7 +24,7 @@ import LiveAlertFeed from './dashboard/LiveAlertFeed';
 import WaitlistStatus from './WaitlistStatus';
 import { printDashboard } from '../utils/exportUtils';
 import { useResponsive } from '../hooks/useResponsive';
-import { createSuccessNotification } from '../contexts/NotificationContext';
+import { createSuccessNotification, useNotification } from '../contexts/NotificationContext';
 import { spacing } from '../styles/theme';
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
@@ -154,10 +153,11 @@ const Dashboard: React.FC = () => {
   const { data, loading, error, timeWindow, setTimeWindow, refresh } = useDashboardData('7D');
   const { summaryPatch, liveScorePoints, liveFraudCells, hasLiveData } = useRealtimeDashboard();
   const { status, latency } = useWebSocket();
+  const { user } = useAuth();
   const [drillDownCell, setDrillDownCell] = useState<FraudHeatmapCell | null>(null);
   const { isMobile, isTablet } = useResponsive();
 
-  const addNotification = useNotification((state) => state.addNotification);
+  const addNotification = useNotification();
   const latestBonuses = useRealtimeDashboard().latestBonuses;
 
   // Merge live realtime patches on top of snapshot data
@@ -340,16 +340,11 @@ const Dashboard: React.FC = () => {
             trend={`${data?.bonusBreakdown?.length ?? 0} sources`}
           />
         </div>
-
-        {/* Waitlist Status */}
-        <div style={{ marginBottom: spacing.lg }}>
-          <WaitlistStatus userEmail={user?.email} />
-        </div>
       )}
 
       {/* Waitlist Status */}
       <div style={{ marginBottom: spacing.lg }}>
-        <WaitlistStatus userEmail={user?.email} />
+        <WaitlistStatus userEmail={user?.email || ""} />
       </div>
 
       {/* Chart Grid */}
