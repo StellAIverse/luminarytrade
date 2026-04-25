@@ -5,6 +5,8 @@ import { useAuth } from "./context/AuthContext";
 import AuthPage from "./components/auth/AuthPage";
 import { useResponsive } from "./hooks/useResponsive";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import LanguageSwitcher from "./components/LanguageSwitcher";
+import { useTranslation } from 'react-i18next';
 
 const Dashboard = lazy(() => import("./components/Dashboard"));
 const CreditScoring = lazy(() => import("./components/CreditScoring"));
@@ -31,6 +33,7 @@ const App: React.FC = () => {
   const { user, logout } = useAuth();
   const theme = useTheme();
   const { isMobile } = useResponsive();
+  const { t } = useTranslation();
 
   const navLinks = [
     {
@@ -143,19 +146,27 @@ const App: React.FC = () => {
              ))}
           </Stack>
 
-          <Box sx={{ marginLeft: isMobile ? 0 : "auto" }}>
+          <Box
+            sx={{
+              marginLeft: isMobile ? 0 : "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+            }}
+          >
+            <LanguageSwitcher compact={isMobile} />
             {user ? (
               <Button
                 variant="outlined"
                 onClick={() => void logout()}
                 size="small"
               >
-                Logout
+                {t("nav.logout")}
               </Button>
             ) : (
               <Stack direction="row" spacing={1.5}>
-                <Link to="/login">Login</Link>
-                <Link to="/signup">Sign up</Link>
+                <Link to="/login">{t("nav.login")}</Link>
+                <Link to="/signup">{t("nav.signUp")}</Link>
               </Stack>
             )}
           </Box>

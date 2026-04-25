@@ -79,6 +79,7 @@ export class WaitlistService {
     return this.waitlistRepo.find({ order: { createdAt: 'DESC' } });
   }
 
+  
   async notifyUser(id: string): Promise<Waitlist> {
     const entry = await this.waitlistRepo.findOne({ where: { id } });
     if (!entry) {

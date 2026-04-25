@@ -5,7 +5,7 @@
  * Interactive legend to toggle agents on/off.
  */
 
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import {
     ResponsiveContainer,
     RadarChart,
@@ -35,26 +35,26 @@ const METRIC_LABELS: Record<string, string> = {
     satisfaction: 'Satisfaction',
 };
 
-const AgentPerformanceChart: React.FC<Props> = ({ data, loading }) => {
+const AgentPerformanceChart: React.FC<Props> = memo(({ data, loading }) => {
     const [hiddenAgents, setHiddenAgents] = useState<Set<string>>(new Set());
 
     // Reshape data for Recharts radar: one entry per metric
-    const radarData = METRICS.map((metric) => {
+    const radarData = React.useMemo(() => METRICS.map((metric) => {
         const entry: Record<string, string | number> = { metric: METRIC_LABELS[metric] };
         data.forEach((agent) => {
             entry[agent.agentName] = agent[metric];
         });
         return entry;
-    });
+    }), [data]);
 
-    const toggleAgent = (agentName: string) => {
+    const toggleAgent = useCallback((agentName: string) => {
         setHiddenAgents((prev) => {
             const next = new Set(prev);
             if (next.has(agentName)) next.delete(agentName);
             else next.add(agentName);
             return next;
         });
-    };
+    }, []);
 
     const csvColumns = [
         { key: 'agentName', label: 'Agent' },
@@ -156,6 +156,8 @@ const AgentPerformanceChart: React.FC<Props> = ({ data, loading }) => {
             </div>
         </ChartCard>
     );
-};
+});
+
+AgentPerformanceChart.displayName = 'AgentPerformanceChart';
 
 export default AgentPerformanceChart;

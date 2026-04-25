@@ -1,0 +1,123 @@
+{
+    "nav": {
+        "dashboard": "Dashboard",
+        "creditScoring": "Credit Scoring",
+        "fraudDetection": "Fraud Detection",
+        "wallet": "Wallet",
+        "transactions": "Transactions",
+        "growthHub": "Growth Hub",
+        "responsiveExamples": "Responsive Examples",
+        "waitlist": "Waitlist",
+        "login": "Login",
+        "signUp": "Sign Up",
+        "logout": "Logout"
+    },
+    "common": {
+        "loading": "Loading...",
+        "refresh": "Refresh",
+        "print": "Print",
+        "error": "Error",
+        "back": "Back",
+        "submit": "Submit",
+        "cancel": "Cancel",
+        "close": "Close"
+    },
+    "dashboard": {
+        "title": "Analytics Dashboard",
+        "subtitle": "Real-time insights & performance metrics",
+        "stats": {
+            "totalTransactions": "Total Transactions",
+            "avgCreditScore": "Avg Credit Score",
+            "fraudAlerts": "Fraud Alerts",
+            "activeAgents": "Active Agents",
+            "riskScore": "Risk Score",
+            "tradingBonuses": "Trading Bonuses"
+        },
+        "fraud": {
+            "detail": "Fraud Detail",
+            "day": "Day",
+            "hour": "Hour",
+            "alertCount": "Alert Count",
+            "severity": "Severity"
+        },
+        "bonus": {
+            "notification": "+{{amount}} tokens from {{type}} bonus - {{description}}",
+            "title": "New Trading Bonus!"
+        }
+    },
+    "waitlist": {
+        "title": "Join the Waitlist",
+        "subtitle": "Be the first to know when we launch new AI-powered trading features.",
+        "form": {
+            "fullName": "Full Name",
+            "emailAddress": "Email Address",
+            "joinButton": "Join Waitlist",
+            "checkStatus": "Already joined? Check your status"
+        },
+        "states": {
+            "verifying": "Verifying your email...",
+            "verified": {
+                "alert": "Your email has been verified! You are now on the waitlist.",
+                "body": "We will notify you when it's your turn to access LuminaryTrade.",
+                "backButton": "Back to Waitlist"
+            },
+            "pending": {
+                "alert": "Confirmation email sent! Please check your inbox.",
+                "title": "Check Your Email",
+                "body": "We've sent a verification link to {{email}}. Please click the link to confirm your spot.",
+                "checkStatusButton": "Check Status",
+                "backButton": "Back to Form"
+            }
+        },
+        "notifications": {
+            "emailVerified": {
+                "title": "Email Verified",
+                "message": "Your email has been verified successfully! You are now on the waitlist."
+            },
+            "verificationFailed": {
+                "title": "Verification Failed"
+            },
+            "joined": {
+                "title": "Joined Waitlist",
+                "message": "You have successfully joined the waitlist!"
+            },
+            "confirmationSent": {
+                "title": "Confirmation Email Sent",
+                "message": "Please check your email to confirm your spot on the waitlist."
+            },
+            "statusCheck": {
+                "title": "Waitlist Status",
+                "message": "Status: {{status}}, Email Verified: {{verified}}"
+            },
+            "notFound": "Email not found on waitlist",
+            "joinFailed": "Failed to join waitlist",
+            "verifyFailed": "Failed to verify email",
+            "error": {
+                "title": "Error"
+            }
+        }
+    },
+    "auth": {
+        "login": {
+            "title": "Welcome back",
+            "subtitle": "Sign in with email, wallet, or social account.",
+            "noAccount": "No account?",
+            "signUpLink": "Sign up"
+        },
+        "signup": {
+            "title": "Create your account",
+            "subtitle": "Sign up to secure your session and access protected tools.",
+            "haveAccount": "Already have an account?",
+            "signInLink": "Sign in"
+        }
+    },
+    "language": {
+        "switcher": "Language",
+        "en": "English",
+        "fr": "French",
+        "ar": "Arabic",
+        "es": "Spanish",
+        "pt": "Portuguese",
+        "zh": "Chinese"
+    }
+}

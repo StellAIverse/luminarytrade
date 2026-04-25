@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import LoginForm from "./LoginForm";
 import SignupForm from "./SignupForm";
 
@@ -10,6 +11,7 @@ interface AuthPageProps {
 const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const from = (location.state as any)?.from?.pathname || "/";
 
   const handleSuccess = () => {
@@ -34,12 +36,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
       }}>
         <div style={{ marginBottom: 20 }}>
           <h1 style={{ margin: 0, fontSize: 22 }}>
-            {mode === "login" ? "Welcome back" : "Create your account"}
+            {mode === "login"
+              ? t("auth.login.title")
+              : t("auth.signup.title")}
           </h1>
           <p style={{ color: "#64748b", marginTop: 8 }}>
             {mode === "login"
-              ? "Sign in with email, wallet, or social account."
-              : "Sign up to secure your session and access protected tools."}
+              ? t("auth.login.subtitle")
+              : t("auth.signup.subtitle")}
           </p>
         </div>
 
@@ -52,11 +56,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ mode }) => {
         <div style={{ marginTop: 24, fontSize: 14, textAlign: "center" }}>
           {mode === "login" ? (
             <span>
-              No account? <Link to="/signup">Sign up</Link>
+              {t("auth.login.noAccount")}{" "}
+              <Link to="/signup">{t("auth.login.signUpLink")}</Link>
             </span>
           ) : (
             <span>
-              Already have an account? <Link to="/login">Sign in</Link>
+              {t("auth.signup.haveAccount")}{" "}
+              <Link to="/login">{t("auth.signup.signInLink")}</Link>
             </span>
           )}
         </div>

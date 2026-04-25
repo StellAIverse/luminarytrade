@@ -12,6 +12,7 @@ import {
 import { bugReportService } from '../services/bugReport.service';
 import { BugPriority } from '../types/growth';
 import { spacing } from '../styles/theme';
+import OptimizedImage from './OptimizedImage';
 
 const cardStyle: React.CSSProperties = {
   borderRadius: 16,
@@ -272,9 +273,64 @@ const BugReportForm: React.FC = () => {
                 }}
               />
               {screenshots.length > 0 && (
-                <div style={{ marginTop: 12, fontSize: 14, color: '#059669', fontWeight: 600 }}>
-                  {screenshots.length} screenshot(s) uploaded
-                </div>
+                <>
+                  <div style={{ marginTop: 12, fontSize: 14, color: '#059669', fontWeight: 600 }}>
+                    {screenshots.length} screenshot(s) uploaded
+                  </div>
+                  <div style={{ 
+                    marginTop: 12, 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gap: 12 
+                  }}>
+                    {screenshots.map((screenshot, index) => (
+                      <div key={index} style={{ position: 'relative' }}>
+                        <OptimizedImage
+                          src={screenshot}
+                          alt={`Screenshot ${index + 1}`}
+                          width={150}
+                          height={100}
+                          quality={70}
+                          format="webp"
+                          lazy={true}
+                          responsive={true}
+                          style={{
+                            width: '100%',
+                            height: '100px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(148, 163, 184, 0.3)'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setScreenshots(prev => prev.filter((_, i) => i !== index));
+                            setSubmitFeedback('Screenshot removed');
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                            background: 'rgba(239, 68, 68, 0.9)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '24px',
+                            height: '24px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 
@@ -360,6 +416,37 @@ const BugReportForm: React.FC = () => {
                     <p style={{ margin: '0 0 12px', color: '#475569', lineHeight: 1.6 }}>
                       {report.description}
                     </p>
+                    {report.screenshots.length > 0 && (
+                      <div style={{ 
+                        marginBottom: 12,
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                        gap: 8 
+                      }}>
+                        {report.screenshots.map((screenshot, index) => (
+                          <OptimizedImage
+                            key={index}
+                            src={screenshot}
+                            alt={`Report screenshot ${index + 1}`}
+                            width={120}
+                            height={80}
+                            quality={60}
+                            format="webp"
+                            lazy={true}
+                            responsive={true}
+                            style={{
+                              width: '100%',
+                              height: '80px',
+                              objectFit: 'cover',
+                              borderRadius: '6px',
+                              border: '1px solid rgba(148, 163, 184, 0.2)',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => window.open(screenshot, '_blank')}
+                          />
+                        ))}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                       <div style={{ fontSize: 13, color: '#64748b' }}>
                         Submitted {new Date(report.submittedAt).toLocaleDateString()}

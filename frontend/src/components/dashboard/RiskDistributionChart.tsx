@@ -5,7 +5,7 @@
  * with custom labels, active-sector enlargement, and legend.
  */
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import {
     ResponsiveContainer,
     PieChart,
@@ -58,13 +58,13 @@ const renderActiveShape = (props: any) => {
     );
 };
 
-const RiskDistributionChart: React.FC<Props> = ({ data, loading }) => {
+const RiskDistributionChart: React.FC<Props> = memo(({ data, loading }) => {
     const csvColumns = [
         { key: 'name', label: 'Risk Level' },
         { key: 'value', label: 'Count' },
     ];
 
-    const total = data.reduce((s, d) => s + d.value, 0);
+    const total = useMemo(() => data.reduce((s, d) => s + d.value, 0), [data]);
 
     return (
         <ChartCard
@@ -130,6 +130,8 @@ const RiskDistributionChart: React.FC<Props> = ({ data, loading }) => {
             </div>
         </ChartCard>
     );
-};
+});
+
+RiskDistributionChart.displayName = 'RiskDistributionChart';
 
 export default RiskDistributionChart;

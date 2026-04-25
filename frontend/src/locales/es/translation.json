@@ -1,0 +1,123 @@
+{
+    "nav": {
+        "dashboard": "Panel de control",
+        "creditScoring": "Puntuación crediticia",
+        "fraudDetection": "Detección de fraude",
+        "wallet": "Billetera",
+        "transactions": "Transacciones",
+        "growthHub": "Hub de crecimiento",
+        "responsiveExamples": "Ejemplos adaptativos",
+        "waitlist": "Lista de espera",
+        "login": "Iniciar sesión",
+        "signUp": "Registrarse",
+        "logout": "Cerrar sesión"
+    },
+    "common": {
+        "loading": "Cargando...",
+        "refresh": "Actualizar",
+        "print": "Imprimir",
+        "error": "Error",
+        "back": "Atrás",
+        "submit": "Enviar",
+        "cancel": "Cancelar",
+        "close": "Cerrar"
+    },
+    "dashboard": {
+        "title": "Panel de análisis",
+        "subtitle": "Información en tiempo real y métricas de rendimiento",
+        "stats": {
+            "totalTransactions": "Total de transacciones",
+            "avgCreditScore": "Puntuación crediticia promedio",
+            "fraudAlerts": "Alertas de fraude",
+            "activeAgents": "Agentes activos",
+            "riskScore": "Puntuación de riesgo",
+            "tradingBonuses": "Bonificaciones de trading"
+        },
+        "fraud": {
+            "detail": "Detalle de fraude",
+            "day": "Día",
+            "hour": "Hora",
+            "alertCount": "Número de alertas",
+            "severity": "Gravedad"
+        },
+        "bonus": {
+            "notification": "+{{amount}} tokens del bono {{type}} - {{description}}",
+            "title": "¡Nuevo bono de trading!"
+        }
+    },
+    "waitlist": {
+        "title": "Unirse a la lista de espera",
+        "subtitle": "Sé el primero en saber cuando lancemos nuevas funciones de trading con IA.",
+        "form": {
+            "fullName": "Nombre completo",
+            "emailAddress": "Dirección de correo electrónico",
+            "joinButton": "Unirse a la lista de espera",
+            "checkStatus": "¿Ya te uniste? Verifica tu estado"
+        },
+        "states": {
+            "verifying": "Verificando tu correo electrónico...",
+            "verified": {
+                "alert": "¡Tu correo ha sido verificado! Ahora estás en la lista de espera.",
+                "body": "Te notificaremos cuando sea tu turno de acceder a LuminaryTrade.",
+                "backButton": "Volver a la lista de espera"
+            },
+            "pending": {
+                "alert": "¡Correo de confirmación enviado!",
+                "title": "Revisa tu correo electrónico",
+                "body": "Hemos enviado un enlace de verificación a {{email}}.",
+                "checkStatusButton": "Verificar estado",
+                "backButton": "Volver al formulario"
+            }
+        },
+        "notifications": {
+            "emailVerified": {
+                "title": "Correo verificado",
+                "message": "¡Tu correo ha sido verificado exitosamente!"
+            },
+            "verificationFailed": {
+                "title": "Verificación fallida"
+            },
+            "joined": {
+                "title": "Lista de espera unida",
+                "message": "¡Te has unido a la lista de espera exitosamente!"
+            },
+            "confirmationSent": {
+                "title": "Correo de confirmación enviado",
+                "message": "Por favor revisa tu correo para confirmar tu lugar en la lista."
+            },
+            "statusCheck": {
+                "title": "Estado de la lista de espera",
+                "message": "Estado: {{status}}, Correo verificado: {{verified}}"
+            },
+            "notFound": "Correo no encontrado en la lista de espera",
+            "joinFailed": "No se pudo unir a la lista de espera",
+            "verifyFailed": "No se pudo verificar el correo",
+            "error": {
+                "title": "Error"
+            }
+        }
+    },
+    "auth": {
+        "login": {
+            "title": "Bienvenido de nuevo",
+            "subtitle": "Inicia sesión con correo, billetera o cuenta social.",
+            "noAccount": "¿No tienes cuenta?",
+            "signUpLink": "Registrarse"
+        },
+        "signup": {
+            "title": "Crea tu cuenta",
+            "subtitle": "Regístrate para proteger tu sesión y acceder a las herramientas.",
+            "haveAccount": "¿Ya tienes una cuenta?",
+            "signInLink": "Iniciar sesión"
+        }
+    },
+    "language": {
+        "switcher": "Idioma",
+        "en": "Inglés",
+        "fr": "Francés",
+        "ar": "Árabe",
+        "es": "Español",
+        "pt": "Portugués",
+        "zh": "Chino"
+    }
+}
