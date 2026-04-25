@@ -36,7 +36,7 @@ src/contexts/
 ### 1. Wrap Your App with Providers
 
 ```tsx
-import { AppProviders } from './contexts/Providers';
+import { AppProviders } from "./contexts/Providers";
 
 function App() {
   return (
@@ -50,7 +50,7 @@ function App() {
 ### 2. Use Custom Hooks in Components
 
 ```tsx
-import { useAuth, useWallet, useNotification } from './contexts/hooks';
+import { useAuth, useWallet, useNotification } from "./contexts/hooks";
 
 function MyComponent() {
   const { user, isAuthenticated, login } = useAuth();
@@ -61,15 +61,15 @@ function MyComponent() {
     try {
       await login(email, password);
       addNotification({
-        type: 'success',
-        title: 'Welcome!',
-        message: 'Login successful'
+        type: "success",
+        title: "Welcome!",
+        message: "Login successful",
       });
     } catch (error) {
       addNotification({
-        type: 'error',
-        title: 'Login Failed',
-        message: error.message
+        type: "error",
+        title: "Login Failed",
+        message: error.message,
       });
     }
   };
@@ -98,7 +98,7 @@ function MyComponent() {
 ### Usage
 
 ```tsx
-import { useAuth } from './contexts/hooks';
+import { useAuth } from "./contexts/hooks";
 
 function AuthComponent() {
   const {
@@ -109,14 +109,14 @@ function AuthComponent() {
     login,
     logout,
     updateProfile,
-    clearError
+    clearError,
   } = useAuth();
 
   const handleLogin = async (email: string, password: string) => {
     try {
       await login(email, password);
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
     }
   };
 
@@ -124,7 +124,7 @@ function AuthComponent() {
     try {
       await updateProfile(updates);
     } catch (error) {
-      console.error('Profile update failed:', error);
+      console.error("Profile update failed:", error);
     }
   };
 
@@ -187,7 +187,7 @@ interface AuthContextType {
 ### Usage
 
 ```tsx
-import { useWallet } from './contexts/hooks';
+import { useWallet } from "./contexts/hooks";
 
 function WalletComponent() {
   const {
@@ -199,23 +199,23 @@ function WalletComponent() {
     connect,
     disconnect,
     sendTransaction,
-    signMessage
+    signMessage,
   } = useWallet();
 
   const handleConnect = async () => {
     try {
-      await connect('metamask');
+      await connect("metamask");
     } catch (error) {
-      console.error('Wallet connection failed:', error);
+      console.error("Wallet connection failed:", error);
     }
   };
 
   const handleSendTransaction = async () => {
     try {
-      const tx = await sendTransaction('0x...', '0.1');
-      console.log('Transaction sent:', tx.hash);
+      const tx = await sendTransaction("0x...", "0.1");
+      console.log("Transaction sent:", tx.hash);
     } catch (error) {
-      console.error('Transaction failed:', error);
+      console.error("Transaction failed:", error);
     }
   };
 
@@ -245,8 +245,8 @@ interface WalletContextType {
   isConnected: boolean;
   address: string | null;
   balance: string;
-  network: 'mainnet' | 'testnet' | 'devnet';
-  provider: 'metamask' | 'walletconnect' | 'phantom' | 'coinbase' | null;
+  network: "mainnet" | "testnet" | "devnet";
+  provider: "metamask" | "walletconnect" | "phantom" | "coinbase" | null;
   chainId: number | null;
   isLoading: boolean;
   error: string | null;
@@ -254,10 +254,14 @@ interface WalletContextType {
   tokens: Token[];
 
   // Methods
-  connect: (provider: WalletState['provider']) => Promise<void>;
+  connect: (provider: WalletState["provider"]) => Promise<void>;
   disconnect: () => void;
-  switchNetwork: (network: WalletState['network']) => Promise<void>;
-  sendTransaction: (to: string, amount: string, data?: string) => Promise<Transaction>;
+  switchNetwork: (network: WalletState["network"]) => Promise<void>;
+  sendTransaction: (
+    to: string,
+    amount: string,
+    data?: string,
+  ) => Promise<Transaction>;
   signMessage: (message: string) => Promise<string>;
   getBalance: () => Promise<void>;
   refreshBalance: () => Promise<void>;
@@ -282,52 +286,53 @@ interface WalletContextType {
 ### Usage
 
 ```tsx
-import { 
-  useNotification, 
-  createSuccessNotification, 
-  createErrorNotification 
-} from './contexts/hooks';
+import {
+  useNotification,
+  createSuccessNotification,
+  createErrorNotification,
+} from "./contexts/hooks";
 
 function NotificationComponent() {
-  const { 
-    notifications, 
-    addNotification, 
+  const {
+    notifications,
+    addNotification,
     removeNotification,
-    clearNotifications 
+    clearNotifications,
   } = useNotification();
 
   const showSuccess = () => {
-    addNotification(createSuccessNotification(
-      'Operation completed successfully!',
-      'Success'
-    ));
+    addNotification(
+      createSuccessNotification("Operation completed successfully!", "Success"),
+    );
   };
 
   const showError = () => {
-    addNotification(createErrorNotification(
-      'Something went wrong. Please try again.',
-      'Error'
-    ));
+    addNotification(
+      createErrorNotification(
+        "Something went wrong. Please try again.",
+        "Error",
+      ),
+    );
   };
 
   const showCustom = () => {
     addNotification({
-      type: 'info',
-      title: 'Custom Notification',
-      message: 'This is a custom notification with actions',
+      type: "info",
+      title: "Custom Notification",
+      message: "This is a custom notification with actions",
       duration: 0, // Persistent
       actions: [
         {
-          label: 'Undo',
-          action: () => console.log('Undo action'),
-          variant: 'secondary'
+          label: "Undo",
+          action: () => console.log("Undo action"),
+          variant: "secondary",
         },
         {
-          label: 'Retry',
-          action: () => console.log('Retry action'),
-          variant: 'primary'
-        }
-      ]
+          label: "Retry",
+          action: () => console.log("Retry action"),
+          variant: "primary",
+        },
+      ],
     });
   };
 
@@ -337,9 +342,9 @@ function NotificationComponent() {
       <button onClick={showError}>Show Error</button>
       <button onClick={showCustom}>Show Custom</button>
       <button onClick={clearNotifications}>Clear All</button>
-      
+
       <div>
-        {notifications.map(notification => (
+        {notifications.map((notification) => (
           <div key={notification.id}>
             <h4>{notification.title}</h4>
             <p>{notification.message}</p>
@@ -361,19 +366,21 @@ interface NotificationContextType {
   // State
   notifications: Notification[];
   maxNotifications: number;
-  position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  position: "top-right" | "top-left" | "bottom-right" | "bottom-left";
   soundEnabled: boolean;
   vibrationEnabled: boolean;
 
   // Methods
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'isRead'>) => string;
+  addNotification: (
+    notification: Omit<Notification, "id" | "timestamp" | "isRead">,
+  ) => string;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   updateNotification: (id: string, updates: Partial<Notification>) => void;
   setMaxNotifications: (max: number) => void;
-  setPosition: (position: NotificationState['position']) => void;
+  setPosition: (position: NotificationState["position"]) => void;
   setSoundEnabled: (enabled: boolean) => void;
   setVibrationEnabled: (enabled: boolean) => void;
 }
@@ -394,16 +401,17 @@ interface NotificationContextType {
 ### Usage
 
 ```tsx
-import { 
-  usePreferences, 
+import {
+  usePreferences,
   useThemePreferences,
-  useAccessibilityPreferences 
-} from './contexts/hooks';
+  useAccessibilityPreferences,
+} from "./contexts/hooks";
 
 function PreferencesComponent() {
   const { preferences, updatePreferences, savePreferences } = usePreferences();
   const { theme, setTheme, toggleTheme } = useThemePreferences();
-  const { accessibility, updateAccessibilitySettings } = useAccessibilityPreferences();
+  const { accessibility, updateAccessibilitySettings } =
+    useAccessibilityPreferences();
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme);
@@ -417,7 +425,10 @@ function PreferencesComponent() {
     <div>
       <div>
         <h3>Theme</h3>
-        <select value={theme} onChange={(e) => handleThemeChange(e.target.value)}>
+        <select
+          value={theme}
+          onChange={(e) => handleThemeChange(e.target.value)}
+        >
           <option value="light">Light</option>
           <option value="dark">Dark</option>
           <option value="system">System</option>
@@ -431,7 +442,9 @@ function PreferencesComponent() {
           <input
             type="checkbox"
             checked={accessibility.highContrast}
-            onChange={(e) => handleAccessibilityUpdate({ highContrast: e.target.checked })}
+            onChange={(e) =>
+              handleAccessibilityUpdate({ highContrast: e.target.checked })
+            }
           />
           High Contrast
         </label>
@@ -439,7 +452,9 @@ function PreferencesComponent() {
           <input
             type="checkbox"
             checked={accessibility.largeText}
-            onChange={(e) => handleAccessibilityUpdate({ largeText: e.target.checked })}
+            onChange={(e) =>
+              handleAccessibilityUpdate({ largeText: e.target.checked })
+            }
           />
           Large Text
         </label>
@@ -486,7 +501,7 @@ interface PreferencesContextType {
 ### Usage
 
 ```tsx
-import { ErrorBoundary, useErrorBoundary } from './contexts';
+import { ErrorBoundary, useErrorBoundary } from "./contexts";
 
 function MyComponent() {
   const { hasError, error, retry, reportError } = useErrorBoundary();
@@ -494,7 +509,7 @@ function MyComponent() {
   const handleError = () => {
     try {
       // Risky operation
-      throw new Error('Something went wrong!');
+      throw new Error("Something went wrong!");
     } catch (error) {
       reportError(error);
     }
@@ -547,7 +562,7 @@ interface ErrorBoundaryContextType {
   clearError: () => void;
   reportError: (error: Error, errorInfo?: ErrorInfo) => Promise<void>;
   retry: () => void;
-  getErrorHistory: () => ErrorState['errorHistory'];
+  getErrorHistory: () => ErrorState["errorHistory"];
   clearErrorHistory: () => void;
 }
 ```
@@ -558,14 +573,14 @@ interface ErrorBoundaryContextType {
 
 ```tsx
 import {
-  AppProviders,           // All providers with error boundary
-  AppStateProviders,      // All state providers (no error boundary)
-  AuthOnlyProviders,      // Auth + notifications only
-  WalletProviders,        // Wallet-focused providers
-  DevProviders,           // Development providers with debugging
-  ProviderSets,           // Pre-configured provider sets
-  createProviders         // Configurable provider composition
-} from './contexts/Providers';
+  AppProviders, // All providers with error boundary
+  AppStateProviders, // All state providers (no error boundary)
+  AuthOnlyProviders, // Auth + notifications only
+  WalletProviders, // Wallet-focused providers
+  DevProviders, // Development providers with debugging
+  ProviderSets, // Pre-configured provider sets
+  createProviders, // Configurable provider composition
+} from "./contexts/Providers";
 ```
 
 ### Usage Examples
@@ -605,7 +620,7 @@ const CustomProviders = createProviders({
 ### Combined State Hook
 
 ```tsx
-import { useAppState } from './contexts/hooks';
+import { useAppState } from "./contexts/hooks";
 
 function AppHeader() {
   const { auth, wallet, notification, isLoading, hasError } = useAppState();
@@ -625,17 +640,18 @@ function AppHeader() {
 ### Authenticated User Hook
 
 ```tsx
-import { useAuthenticatedUser } from './contexts/hooks';
+import { useAuthenticatedUser } from "./contexts/hooks";
 
 function UserProfile() {
-  const { user, logout, updateProfile, showSuccess, showError } = useAuthenticatedUser();
+  const { user, logout, updateProfile, showSuccess, showError } =
+    useAuthenticatedUser();
 
   const handleUpdateProfile = async (updates) => {
     try {
       await updateProfile(updates);
-      showSuccess('Profile updated successfully!');
+      showSuccess("Profile updated successfully!");
     } catch (error) {
-      showError('Failed to update profile');
+      showError("Failed to update profile");
     }
   };
 
@@ -652,16 +668,16 @@ function UserProfile() {
 ### Wallet Operations Hook
 
 ```tsx
-import { useWalletOperations } from './contexts/hooks';
+import { useWalletOperations } from "./contexts/hooks";
 
 function WalletInterface() {
-  const { 
-    isConnected, 
-    address, 
-    balance, 
-    connect, 
-    disconnect, 
-    sendTransaction 
+  const {
+    isConnected,
+    address,
+    balance,
+    connect,
+    disconnect,
+    sendTransaction,
   } = useWalletOperations();
 
   return (
@@ -671,12 +687,12 @@ function WalletInterface() {
           <p>Connected: {address}</p>
           <p>Balance: {balance} ETH</p>
           <button onClick={() => disconnect()}>Disconnect</button>
-          <button onClick={() => sendTransaction('0x...', '0.1')}>
+          <button onClick={() => sendTransaction("0x...", "0.1")}>
             Send ETH
           </button>
         </div>
       ) : (
-        <button onClick={() => connect('metamask')}>Connect Wallet</button>
+        <button onClick={() => connect("metamask")}>Connect Wallet</button>
       )}
     </div>
   );
@@ -722,27 +738,27 @@ Always handle async errors in hooks:
 // ✅ Good
 function LoginComponent() {
   const { login, clearError } = useAuth();
-  
+
   const handleLogin = async (email, password) => {
     try {
       await login(email, password);
     } catch (error) {
       // Error is handled in context, but you can add UI feedback
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
     }
   };
-  
+
   return <LoginForm onLogin={handleLogin} />;
 }
 
 // ❌ Bad - No error handling
 function BadLoginComponent() {
   const { login } = useAuth();
-  
+
   const handleLogin = async (email, password) => {
     await login(email, password); // Errors not handled
   };
-  
+
   return <LoginForm onLogin={handleLogin} />;
 }
 ```
@@ -755,18 +771,18 @@ Use loading states for better UX:
 // ✅ Good
 function DataComponent() {
   const { isLoading, user } = useAuth();
-  
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
-  
+
   return <div>Welcome, {user?.name}!</div>;
 }
 
 // ❌ Bad - No loading state
 function BadDataComponent() {
   const { user } = useAuth();
-  
+
   return <div>Welcome, {user?.name}!</div>; // May show undefined during loading
 }
 ```
@@ -779,18 +795,18 @@ Render based on authentication state:
 // ✅ Good
 function ProtectedComponent() {
   const { isAuthenticated, user } = useAuth();
-  
+
   if (!isAuthenticated) {
     return <LoginRequired />;
   }
-  
+
   return <div>Welcome, {user.name}!</div>;
 }
 
 // ❌ Bad - Accessing user without checking auth
 function BadProtectedComponent() {
   const { user } = useAuth();
-  
+
   return <div>Welcome, {user.name}!</div>; // May crash if not authenticated
 }
 ```
@@ -818,47 +834,45 @@ function BadThemeComponent() {
 ### Testing Components with Contexts
 
 ```tsx
-import { render, screen } from '@testing-library/react';
-import { AuthProvider } from '../contexts/AuthContext';
-import { NotificationProvider } from '../contexts/NotificationContext';
+import { render, screen } from "@testing-library/react";
+import { AuthProvider } from "../contexts/AuthContext";
+import { NotificationProvider } from "../contexts/NotificationContext";
 
 // Test wrapper
 const TestWrapper = ({ children }) => (
   <AuthProvider>
-    <NotificationProvider>
-      {children}
-    </NotificationProvider>
+    <NotificationProvider>{children}</NotificationProvider>
   </AuthProvider>
 );
 
 // Test component
-test('renders user profile when authenticated', () => {
+test("renders user profile when authenticated", () => {
   render(<UserProfile />, { wrapper: TestWrapper });
-  
+
   // Test your component
-  expect(screen.getByText('User Profile')).toBeInTheDocument();
+  expect(screen.getByText("User Profile")).toBeInTheDocument();
 });
 ```
 
 ### Mocking Context Values
 
 ```tsx
-import { render, screen } from '@testing-library/react';
-import { useAuth } from '../contexts/hooks';
+import { render, screen } from "@testing-library/react";
+import { useAuth } from "../contexts/hooks";
 
 // Mock the hook
-jest.mock('../contexts/hooks', () => ({
+jest.mock("../contexts/hooks", () => ({
   useAuth: () => ({
-    user: { id: '1', name: 'Test User', email: 'test@example.com' },
+    user: { id: "1", name: "Test User", email: "test@example.com" },
     isAuthenticated: true,
     isLoading: false,
     error: null,
   }),
 }));
 
-test('renders with mocked auth', () => {
+test("renders with mocked auth", () => {
   render(<UserProfile />);
-  expect(screen.getByText('Test User')).toBeInTheDocument();
+  expect(screen.getByText("Test User")).toBeInTheDocument();
 });
 ```
 
@@ -867,11 +881,12 @@ test('renders with mocked auth', () => {
 ### From Prop Drilling
 
 **Before:**
+
 ```tsx
 function App() {
   const [user, setUser] = useState(null);
   const [wallet, setWallet] = useState(null);
-  
+
   return (
     <div>
       <Navbar user={user} wallet={wallet} />
@@ -883,6 +898,7 @@ function App() {
 ```
 
 **After:**
+
 ```tsx
 function App() {
   return (
@@ -900,7 +916,7 @@ function App() {
 function Dashboard() {
   const { user } = useAuth();
   const { wallet } = useWallet();
-  
+
   return (
     <div>
       <Navbar />
@@ -914,28 +930,30 @@ function Dashboard() {
 ### From Redux/MobX
 
 **Before:**
+
 ```tsx
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from "react-redux";
 
 function Component() {
-  const user = useSelector(state => state.auth.user);
+  const user = useSelector((state) => state.auth.user);
   const dispatch = useDispatch();
-  
+
   const login = (email, password) => {
     dispatch(authActions.login(email, password));
   };
-  
+
   return <div>{user?.name}</div>;
 }
 ```
 
 **After:**
+
 ```tsx
-import { useAuth } from '../contexts/hooks';
+import { useAuth } from "../contexts/hooks";
 
 function Component() {
   const { user, login } = useAuth();
-  
+
   return <div>{user?.name}</div>;
 }
 ```
@@ -966,10 +984,10 @@ Enable debug logging in development:
 
 ```tsx
 // In development
-if (process.env.NODE_ENV === 'development') {
-  console.log('Auth State:', useAuth());
-  console.log('Wallet State:', useWallet());
-  console.log('Notification State:', useNotification());
+if (process.env.NODE_ENV === "development") {
+  console.log("Auth State:", useAuth());
+  console.log("Wallet State:", useWallet());
+  console.log("Notification State:", useNotification());
 }
 ```
 

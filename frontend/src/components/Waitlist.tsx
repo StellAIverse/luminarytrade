@@ -9,13 +9,15 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import { useNotification } from "./contexts/NotificationContext";
+import { useTranslation } from "react-i18next";
+import { useNotification } from "../contexts/NotificationContext";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiClient } from "../services/api/ApiClient";
 
 type WaitlistStatusType = 'form' | 'verification_pending' | 'verifying' | 'verified' | 'error';
 
 const Waitlist: React.FC = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,18 +48,18 @@ const Waitlist: React.FC = () => {
         setStatus('verified');
         addNotification({
           type: "success",
-          title: "Email Verified",
-          message: "Your email has been verified successfully! You are now on the waitlist.",
+          title: t('waitlist.notifications.emailVerified.title'),
+          message: t('waitlist.notifications.emailVerified.message'),
           duration: 5000,
         });
       }
     } catch (err: any) {
       setStatus('error');
-      const errorMessage = err.message || "Failed to verify email";
+      const errorMessage = err.message || t('waitlist.notifications.verifyFailed');
       setError(errorMessage);
       addNotification({
         type: "error",
-        title: "Verification Failed",
+        title: t('waitlist.notifications.verificationFailed.title'),
         message: errorMessage,
         duration: 8000,
       });
@@ -79,25 +81,26 @@ const Waitlist: React.FC = () => {
         setStatus('verified');
         addNotification({
           type: "success",
-          title: "Joined Waitlist",
-          message: "You have successfully joined the waitlist!",
+          title: t('waitlist.notifications.joined.title'),
+          message: t('waitlist.notifications.joined.message'),
           duration: 5000,
         });
       } else {
         setStatus('verification_pending');
         addNotification({
           type: "success",
-          title: "Confirmation Email Sent",
-          message: "Please check your email to confirm your spot on the waitlist.",
+          title: t('waitlist.notifications.confirmationSent.title'),
+          message: t('waitlist.notifications.confirmationSent.message'),
           duration: 5000,
         });
       }
     } catch (err: any) {
-      setError(err.message || "Failed to join waitlist");
+      const errorMessage = err.message || t('waitlist.notifications.joinFailed');
+      setError(errorMessage);
       addNotification({
         type: "error",
-        title: "Error",
-        message: err.message || "Failed to join waitlist",
+        title: t('waitlist.notifications.error.title'),
+        message: errorMessage,
         duration: 8000,
       });
     } finally {
@@ -121,113 +124,113 @@ const Waitlist: React.FC = () => {
       if (response.data.found) {
         addNotification({
           type: "info",
-          title: "Waitlist Status",
-          message: `Status: ${response.data.status}, Email Verified: ${response.data.emailVerified ? 'Yes' : 'No'}`,
+          title: t('waitlist.notifications.statusCheck.title'),
+          message: t('waitlist.notifications.statusCheck.message', {
+            status: response.data.status,
+            verified: response.data.emailVerified ? t('common.yes') : t('common.no'),
+          }),
           duration: 5000,
         });
       } else {
-        setError("Email not found on waitlist");
+        setError(t('waitlist.notifications.notFound'));
       }
     } catch (err: any) {
-      setError(err.message || "Failed to check status");
+      setError(err.message || t('waitlist.notifications.checkFailed'));
     } finally {
       setLoading(false);
     }
   };
 
+  const resetForm = () => {
+    setStatus('form');
+    setEmail('');
+    setName('');
+  };
+
+  // ── Verifying state ──────────────────────────────────────────────────────────
   if (status === 'verifying') {
     return (
       <Box sx={{ maxWidth: 500, mx: "auto", mt: 8 }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2, textAlign: "center" }}>
           <CircularProgress size={48} sx={{ mb: 2 }} />
           <Typography variant="h5" gutterBottom>
-            Verifying your email...
+            {t('waitlist.states.verifying')}
           </Typography>
         </Paper>
       </Box>
     );
   }
 
+  // ── Verified state ───────────────────────────────────────────────────────────
   if (status === 'verified') {
     return (
       <Box sx={{ maxWidth: 500, mx: "auto", mt: 8 }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
           <Alert severity="success" sx={{ mb: 3 }}>
-            Your email has been verified! You are now on the waitlist.
+            {t('waitlist.states.verified.alert')}
           </Alert>
           <Typography variant="body1" color="text.secondary" align="center">
-            We will notify you when it's your turn to access LuminaryTrade.
+            {t('waitlist.states.verified.body')}
           </Typography>
           <Button
             fullWidth
             variant="contained"
             sx={{ mt: 3 }}
-            onClick={() => {
-              setStatus('form');
-              setEmail('');
-              setName('');
-            }}
+            onClick={resetForm}
           >
-            Back to Waitlist
+            {t('waitlist.states.verified.backButton')}
           </Button>
         </Paper>
       </Box>
     );
   }
 
+  // ── Verification pending state ───────────────────────────────────────────────
   if (status === 'verification_pending') {
     return (
       <Box sx={{ maxWidth: 500, mx: "auto", mt: 8 }}>
         <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
           <Alert severity="info" sx={{ mb: 3 }}>
-            Confirmation email sent! Please check your inbox.
+            {t('waitlist.states.pending.alert')}
           </Alert>
           <Typography variant="h5" gutterBottom align="center" sx={{ fontWeight: "bold" }}>
-            Check Your Email
+            {t('waitlist.states.pending.title')}
           </Typography>
           <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
-            We've sent a verification link to <strong>{email}</strong>.
-            Please click the link to confirm your spot on the waitlist.
+            {t('waitlist.states.pending.body', { email })}
           </Typography>
           <Button
             fullWidth
             variant="outlined"
             sx={{ mb: 2 }}
-            onClick={() => handleCheckStatus()}
+            onClick={handleCheckStatus}
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} /> : "Check Status"}
+            {loading ? <CircularProgress size={24} /> : t('waitlist.states.pending.checkStatusButton')}
           </Button>
-          <Button
-            fullWidth
-            variant="text"
-            onClick={() => {
-              setStatus('form');
-              setEmail('');
-              setName('');
-            }}
-          >
-            Back to Form
+          <Button fullWidth variant="text" onClick={resetForm}>
+            {t('waitlist.states.pending.backButton')}
           </Button>
         </Paper>
       </Box>
     );
   }
 
+  // ── Default form state ───────────────────────────────────────────────────────
   return (
     <Box sx={{ maxWidth: 500, mx: "auto", mt: 8 }}>
       <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
         <Typography variant="h4" gutterBottom align="center" sx={{ fontWeight: "bold" }}>
-          Join the Waitlist
+          {t('waitlist.title')}
         </Typography>
         <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
-          Be the first to know when we launch new AI-powered trading features.
+          {t('waitlist.subtitle')}
         </Typography>
 
         <form onSubmit={handleSubmit}>
           <Stack spacing={3}>
             <TextField
-              label="Full Name"
+              label={t('waitlist.form.fullName')}
               variant="outlined"
               fullWidth
               value={name}
@@ -235,7 +238,7 @@ const Waitlist: React.FC = () => {
               disabled={loading}
             />
             <TextField
-              label="Email Address"
+              label={t('waitlist.form.emailAddress')}
               variant="outlined"
               type="email"
               required
@@ -245,9 +248,7 @@ const Waitlist: React.FC = () => {
               disabled={loading}
             />
 
-            {error && (
-              <Alert severity="error">{error}</Alert>
-            )}
+            {error && <Alert severity="error">{error}</Alert>}
 
             <Button
               type="submit"
@@ -257,7 +258,7 @@ const Waitlist: React.FC = () => {
               disabled={loading || !email}
               sx={{ py: 1.5, fontSize: "1.1rem" }}
             >
-              {loading ? <CircularProgress size={24} /> : "Join Waitlist"}
+              {loading ? <CircularProgress size={24} /> : t('waitlist.form.joinButton')}
             </Button>
 
             <Button
@@ -266,7 +267,7 @@ const Waitlist: React.FC = () => {
               onClick={handleCheckStatus}
               disabled={loading || !email}
             >
-              Already joined? Check your status
+              {t('waitlist.form.checkStatus')}
             </Button>
           </Stack>
         </form>

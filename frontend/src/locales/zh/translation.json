@@ -1,0 +1,123 @@
+{
+    "nav": {
+        "dashboard": "控制台",
+        "creditScoring": "信用评分",
+        "fraudDetection": "欺诈检测",
+        "wallet": "钱包",
+        "transactions": "交易记录",
+        "growthHub": "增长中心",
+        "responsiveExamples": "响应式示例",
+        "waitlist": "等待名单",
+        "login": "登录",
+        "signUp": "注册",
+        "logout": "退出登录"
+    },
+    "common": {
+        "loading": "加载中...",
+        "refresh": "刷新",
+        "print": "打印",
+        "error": "错误",
+        "back": "返回",
+        "submit": "提交",
+        "cancel": "取消",
+        "close": "关闭"
+    },
+    "dashboard": {
+        "title": "分析控制台",
+        "subtitle": "实时洞察与性能指标",
+        "stats": {
+            "totalTransactions": "总交易量",
+            "avgCreditScore": "平均信用分",
+            "fraudAlerts": "欺诈警报",
+            "activeAgents": "活跃代理",
+            "riskScore": "风险评分",
+            "tradingBonuses": "交易奖励"
+        },
+        "fraud": {
+            "detail": "欺诈详情",
+            "day": "日期",
+            "hour": "时间",
+            "alertCount": "警报数量",
+            "severity": "严重程度"
+        },
+        "bonus": {
+            "notification": "从{{type}}奖励获得+{{amount}}代币 - {{description}}",
+            "title": "新交易奖励！"
+        }
+    },
+    "waitlist": {
+        "title": "加入等待名单",
+        "subtitle": "成为第一个了解我们推出新AI交易功能的人。",
+        "form": {
+            "fullName": "全名",
+            "emailAddress": "电子邮件地址",
+            "joinButton": "加入等待名单",
+            "checkStatus": "已加入？查看您的状态"
+        },
+        "states": {
+            "verifying": "正在验证您的电子邮件...",
+            "verified": {
+                "alert": "您的电子邮件已验证！您现在已在等待名单上。",
+                "body": "当轮到您访问LuminaryTrade时，我们将通知您。",
+                "backButton": "返回等待名单"
+            },
+            "pending": {
+                "alert": "确认邮件已发送！",
+                "title": "查看您的电子邮件",
+                "body": "我们已向{{email}}发送了验证链接。",
+                "checkStatusButton": "查看状态",
+                "backButton": "返回表单"
+            }
+        },
+        "notifications": {
+            "emailVerified": {
+                "title": "电子邮件已验证",
+                "message": "您的电子邮件已成功验证！"
+            },
+            "verificationFailed": {
+                "title": "验证失败"
+            },
+            "joined": {
+                "title": "已加入等待名单",
+                "message": "您已成功加入等待名单！"
+            },
+            "confirmationSent": {
+                "title": "确认邮件已发送",
+                "message": "请检查您的电子邮件以确认您的位置。"
+            },
+            "statusCheck": {
+                "title": "等待名单状态",
+                "message": "状态：{{status}}，邮箱已验证：{{verified}}"
+            },
+            "notFound": "等待名单中未找到该电子邮件",
+            "joinFailed": "无法加入等待名单",
+            "verifyFailed": "无法验证电子邮件",
+            "error": {
+                "title": "错误"
+            }
+        }
+    },
+    "auth": {
+        "login": {
+            "title": "欢迎回来",
+            "subtitle": "使用电子邮件、钱包或社交账户登录。",
+            "noAccount": "没有账户？",
+            "signUpLink": "注册"
+        },
+        "signup": {
+            "title": "创建您的账户",
+            "subtitle": "注册以保护您的会话并访问受保护的工具。",
+            "haveAccount": "已有账户？",
+            "signInLink": "登录"
+        }
+    },
+    "language": {
+        "switcher": "语言",
+        "en": "英语",
+        "fr": "法语",
+        "ar": "阿拉伯语",
+        "es": "西班牙语",
+        "pt": "葡萄牙语",
+        "zh": "中文"
+    }
+}
