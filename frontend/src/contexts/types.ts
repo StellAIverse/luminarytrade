@@ -147,6 +147,12 @@ export interface UserPreferences {
     push: boolean;
     sms: boolean;
     inApp: boolean;
+    tradeNotifications: {
+      tradeExecuted: boolean;
+      tradeStatus: boolean;
+      tradeFailed: boolean;
+      tradeCompleted: boolean;
+    };
   };
   privacy: {
     profileVisibility: 'public' | 'private' | 'friends';

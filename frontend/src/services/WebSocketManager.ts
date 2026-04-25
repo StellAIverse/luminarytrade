@@ -14,7 +14,10 @@ export type WsEventType =
   | 'fraud_alert'
   | 'price_update'
   | 'connection_status'
-  | 'error';
+  | 'error'
+  | 'trade_executed'
+  | 'trade_status'
+  | 'trade_notification';
 
 export type ConnectionStatus =
   | 'connecting'
@@ -58,6 +61,39 @@ export interface ConnectionStatusPayload {
   status: ConnectionStatus;
   latency?: number;
   reconnectAttempt?: number;
+}
+
+export interface TradeExecutedPayload {
+  tradeId: string;
+  asset: string;
+  type: 'buy' | 'sell';
+  amount: number;
+  price: number;
+  total: number;
+  timestamp: number;
+  status: 'completed' | 'pending' | 'failed';
+}
+
+export interface TradeStatusPayload {
+  tradeId: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  updatedAt: number;
+  message?: string;
+}
+
+export interface TradeNotificationPayload {
+  notificationId: string;
+  tradeId?: string;
+  title: string;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  timestamp: number;
+  data?: Record<string, any>;
+  actions?: Array<{
+    label: string;
+    action: string;
+    url?: string;
+  }>;
 }
 
 export type EventHandler<T = unknown> = (event: WsEvent<T>) => void;
