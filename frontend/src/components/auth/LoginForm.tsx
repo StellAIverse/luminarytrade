@@ -185,10 +185,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  padding: "12px 14px",
+  padding: "14px 16px", // Increased padding for better touch targets
   borderRadius: 10,
   border: "1px solid #e2e8f0",
-  fontSize: 14,
+  fontSize: 16, // Increased font size for readability
+  minHeight: "48px", // Minimum touch target height
 };
 
 const labelStyle: React.CSSProperties = {
@@ -200,24 +201,26 @@ const labelStyle: React.CSSProperties = {
 const primaryButtonStyle: React.CSSProperties = {
   width: "100%",
   marginTop: 18,
-  padding: "12px",
+  padding: "14px", // Increased padding for touch
   borderRadius: 10,
   border: "none",
   background: "#4f46e5",
   color: "white",
   fontWeight: 600,
-  fontSize: 15,
+  fontSize: 16, // Increased font size
   cursor: "pointer",
+  minHeight: "48px", // Minimum touch target
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
-  padding: "10px 14px",
+  padding: "12px 16px", // Increased padding for touch
   borderRadius: 10,
   border: "1px solid #cbd5f5",
   background: "#eef2ff",
   color: "#4338ca",
   fontWeight: 600,
   cursor: "pointer",
+  minHeight: "48px", // Minimum touch target
 };
 
 const errorStyle: React.CSSProperties = {

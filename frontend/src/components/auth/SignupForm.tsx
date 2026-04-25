@@ -91,10 +91,11 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSuccess }) => {
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
-  padding: "12px 14px",
+  padding: "14px 16px", // Increased padding for better touch targets
   borderRadius: 10,
   border: "1px solid #e2e8f0",
-  fontSize: 14,
+  fontSize: 16, // Increased font size for readability
+  minHeight: "48px", // Minimum touch target height
 };
 
 const labelStyle: React.CSSProperties = {
@@ -106,14 +107,15 @@ const labelStyle: React.CSSProperties = {
 const primaryButtonStyle: React.CSSProperties = {
   width: "100%",
   marginTop: 18,
-  padding: "12px",
+  padding: "14px", // Increased padding for touch
   borderRadius: 10,
   border: "none",
   background: "#2563eb",
   color: "white",
   fontWeight: 600,
-  fontSize: 15,
+  fontSize: 16, // Increased font size
   cursor: "pointer",
+  minHeight: "48px", // Minimum touch target
 };
 
 const errorStyle: React.CSSProperties = {

@@ -108,18 +108,19 @@ export const FormFieldComponent: React.FC<FormFieldProps> = ({
     marginBottom: "6px",
   };
 
-  const inputBaseStyles: CSSProperties = {
-    width: "100%",
-    padding: "10px 12px",
-    fontSize: "16px",
-    border: `1px solid ${hasError ? "#d32f2f" : "#ccc"}`,
-    borderRadius: "4px",
-    backgroundColor: disabled ? "#f5f5f5" : "#fff",
-    color: disabled ? "#999" : "#333",
-    boxSizing: "border-box",
-    transition: "border-color 0.2s ease",
-    outline: "none",
-  };
+const inputBaseStyles: CSSProperties = {
+  width: "100%",
+  padding: "12px 14px", // Increased padding for better touch targets
+  fontSize: "16px",
+  border: `1px solid ${hasError ? "#d32f2f" : "#ccc"}`,
+  borderRadius: "4px",
+  backgroundColor: disabled ? "#f5f5f5" : "#fff",
+  color: disabled ? "#999" : "#333",
+  boxSizing: "border-box",
+  transition: "border-color 0.2s ease",
+  outline: "none",
+  minHeight: "44px", // Minimum touch target height for mobile
+};
 
   const focusStyles: CSSProperties = {
     borderColor: hasError ? "#d32f2f" : "#1976d2",

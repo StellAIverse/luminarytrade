@@ -1,4 +1,5 @@
-import { createTheme } from "@mui/material/styles";
+import { PaletteMode } from "@mui/material";
+import { createTheme, Palette } from "@mui/material/styles";
 
 export const breakpointValues = {
   mobile: 0,
@@ -58,7 +59,7 @@ declare module "@mui/material/styles" {
   }
 }
 
-export const appTheme = createTheme({
+export const appTheme = (mode: PaletteMode) => createTheme({
   spacing: spacing.unit,
   breakpoints: {
     values: {
@@ -70,7 +71,8 @@ export const appTheme = createTheme({
     },
   },
   palette: {
-    mode: "light",
+    mode,
+    ...(mode === "light" ? {
     primary: { main: colorPalette.primary },
     secondary: { main: colorPalette.secondary },
     success: { main: colorPalette.success },
@@ -84,7 +86,7 @@ export const appTheme = createTheme({
       primary: colorPalette.textPrimary,
       secondary: colorPalette.textSecondary,
     },
-    divider: colorPalette.border,
+    divider: colorPalette.border,}:{})
   },
   typography: {
     fontFamily: "'Inter', 'IBM Plex Sans', system-ui, -apple-system, sans-serif",

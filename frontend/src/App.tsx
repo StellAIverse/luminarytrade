@@ -12,6 +12,10 @@ const FraudDetection = lazy(() => import("./components/FraudDetection"));
 const WalletInterface = lazy(() => import("./components/WalletInterface"));
 const TransactionPage = lazy(() => import("./components/TransactionPage"));
 const GrowthHub = lazy(() => import("./components/GrowthHub"));
+const ReferralDashboard = lazy(() => import("./components/ReferralDashboard"));
+const AffiliateDashboard = lazy(() => import("./components/AffiliateDashboard"));
+const BugReportForm = lazy(() => import("./components/BugReportForm"));
+const NotificationCenter = lazy(() => import("./components/NotificationCenter"));
 const ResponsiveExamples = lazy(
   () => import("./components/examples/ResponsiveComponentExamples"),
 );
@@ -60,6 +64,26 @@ const App: React.FC = () => {
       prefetch: () => import("./components/GrowthHub"),
     },
     {
+      to: "/referrals",
+      label: "Referrals",
+      prefetch: () => import("./components/ReferralDashboard"),
+    },
+    {
+      to: "/affiliate",
+      label: "Affiliate",
+      prefetch: () => import("./components/AffiliateDashboard"),
+    },
+    {
+      to: "/bug-reports",
+      label: "Bug Reports",
+      prefetch: () => import("./components/BugReportForm"),
+    },
+    {
+      to: "/notifications",
+      label: "Notifications",
+      prefetch: () => import("./components/NotificationCenter"),
+    },
+    {
       to: "/responsive-examples",
       label: "Responsive Examples",
       prefetch: () =>
@@ -74,19 +98,20 @@ const App: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: "100vh", backgroundColor: "background.default" }}>
-      <Box
-        component="nav"
-        sx={{
-          px: { xs: 2, sm: 3, md: 4 },
-          py: 2,
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          backgroundColor: "background.paper",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-        }}
-      >
+<Box
+  component="nav"
+  sx={{
+    px: { xs: 2, sm: 3, md: 4 },
+    py: { xs: 2, sm: 3 }, // Increased vertical padding on mobile for touch
+    borderBottom: "1px solid",
+    borderColor: "divider",
+    backgroundColor: "background.paper",
+    position: "sticky",
+    top: 0,
+    zIndex: 10,
+    minHeight: { xs: 64, sm: 56 }, // Minimum height for touch targets
+  }}
+>
         <Stack
           direction={isMobile ? "column" : "row"}
           spacing={2}
@@ -98,21 +123,27 @@ const App: React.FC = () => {
             alignItems={isMobile ? "flex-start" : "center"}
             flexWrap="wrap"
           >
-            {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                onMouseEnter={link.prefetch}
-                style={{
-                  color: theme.palette.primary.main,
-                  textDecoration: "none",
-                  fontSize: theme.typography.body2.fontSize as string,
-                  fontWeight: 600,
-                }}
-              >
-                {link.label}
-              </Link>
-            ))}
+{navLinks.map((link) => (
+               <Link
+                 key={link.to}
+                 to={link.to}
+                 onMouseEnter={link.prefetch}
+                 style={{
+                   color: theme.palette.primary.main,
+                   textDecoration: "none",
+                   fontSize: theme.typography.body2.fontSize as string,
+                   fontWeight: 600,
+                   padding: { xs: '8px 12px', sm: '6px 12px' }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as string,
+                   borderRadius: '4px',
+                   // Add touch feedback
+                   '&:active': {
+                     backgroundColor: 'rgba(255,255,255,0.1)',
+                   },
+                 }}
+               >
+                 {link.label}
+               </Link>
+             ))}
           </Stack>
 
           <Box sx={{ marginLeft: isMobile ? 0 : "auto" }}>
@@ -150,6 +181,10 @@ const App: React.FC = () => {
               <Route path="/wallet" element={<WalletInterface />} />
               <Route path="/transactions" element={<TransactionPage />} />
               <Route path="/growth" element={<GrowthHub />} />
+              <Route path="/referrals" element={<ReferralDashboard />} />
+              <Route path="/affiliate" element={<AffiliateDashboard />} />
+              <Route path="/bug-reports" element={<BugReportForm />} />
+              <Route path="/notifications" element={<NotificationCenter />} />
             </Route>
             <Route path="/waitlist" element={<Waitlist />} />
             <Route

@@ -1,19 +1,30 @@
 import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
-import userReducer from './slices/userSlice';
-import agentsReducer from './slices/agentsSlice';
-import scoresReducer from './slices/scoresSlice';
-import realtimeReducer from './slices/realtimeSlice';
-import uiReducer from './slices/uiSlice';
+// Note: These slices are referenced but may not exist yet
+// Uncomment when the files are created:
+// import userReducer from './slices/userSlice';
+// import agentsReducer from './slices/agentsSlice';
+// import scoresReducer from './slices/scoresSlice';
+// import realtimeReducer from './slices/realtimeSlice';
+// import uiReducer from './slices/uiSlice';
+import referralReducer from './slices/referralSlice';
+import affiliateReducer from './slices/affiliateSlice';
+import bugReportReducer from './slices/bugReportSlice';
+import notificationReducer from './slices/notificationSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    user: userReducer,
-    agents: agentsReducer,
-    scores: scoresReducer,
-    realtime: realtimeReducer,
-    ui: uiReducer,
+    // Add these when slices are created:
+    // user: userReducer,
+    // agents: agentsReducer,
+    // scores: scoresReducer,
+    // realtime: realtimeReducer,
+    // ui: uiReducer,
+    referral: referralReducer,
+    affiliate: affiliateReducer,
+    bugReport: bugReportReducer,
+    notification: notificationReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -25,7 +36,9 @@ export const store = configureStore({
         // Ignore these paths in the state
         ignoredPaths: ['realtime.socket'],
       },
-    }),
+    })
+    // Add RTK Query middleware for caching and request deduplication
+    .concat(baseApi.middleware),
 });
 
 export type AppDispatch = typeof store.dispatch;

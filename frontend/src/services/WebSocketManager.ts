@@ -13,6 +13,7 @@ export type WsEventType =
   | 'score_update'
   | 'fraud_alert'
   | 'price_update'
+  | 'bonus_update'
   | 'connection_status'
   | 'error'
   | 'trade_executed'
@@ -54,6 +55,14 @@ export interface PriceUpdatePayload {
   price: number;
   change24h: number;
   volume24h: number;
+  timestamp: number;
+}
+
+export interface BonusUpdatePayload {
+  type: 'referral' | 'affiliate' | 'activity' | 'bugReport' | 'volume';
+  amount: number;
+  description: string;
+  userId: string;
   timestamp: number;
 }
 

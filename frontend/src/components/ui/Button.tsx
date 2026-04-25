@@ -68,19 +68,22 @@ const VARIANT_STYLES: Record<ButtonVariant, CSSProperties> = {
 
 const SIZE_STYLES: Record<ButtonSize, CSSProperties> = {
   small: {
-    padding: "6px 12px",
+    padding: "8px 16px",
     fontSize: "14px",
-    height: "32px",
+    height: "36px",
+    minWidth: "48px", // Minimum touch target for mobile
   },
   medium: {
-    padding: "10px 20px",
+    padding: "12px 24px",
     fontSize: "16px",
-    height: "40px",
+    height: "44px",
+    minWidth: "48px", // Minimum touch target for mobile
   },
   large: {
-    padding: "14px 28px",
+    padding: "16px 32px",
     fontSize: "18px",
-    height: "48px",
+    height: "52px",
+    minWidth: "48px", // Minimum touch target for mobile
   },
 };
 
@@ -90,6 +93,15 @@ const HOVER_STYLES: Record<ButtonVariant, CSSProperties> = {
   outline: { backgroundColor: "rgba(25, 118, 210, 0.08)" },
   ghost: { backgroundColor: "rgba(25, 118, 210, 0.08)" },
   danger: { backgroundColor: "#b71c1c" },
+};
+
+// Active styles for touch feedback
+const ACTIVE_STYLES: Record<ButtonVariant, CSSProperties> = {
+  primary: { backgroundColor: "#0d47a1", transform: "scale(0.98)" },
+  secondary: { backgroundColor: "#bdbdbd", transform: "scale(0.98)" },
+  outline: { backgroundColor: "rgba(25, 118, 210, 0.16)", transform: "scale(0.98)" },
+  ghost: { backgroundColor: "rgba(25, 118, 210, 0.16)", transform: "scale(0.98)" },
+  danger: { backgroundColor: "#8e0000", transform: "scale(0.98)" },
 };
 
 // ─── Loading Spinner Component ────────────────────────────────────────────────
@@ -140,27 +152,42 @@ export const Button: React.FC<ButtonProps> = ({
   ...rest
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
+const [isActive, setIsActive] = React.useState(false);
 
-  const baseStyles: CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 500,
-    borderRadius: "4px",
-    cursor: disabled || loading ? "not-allowed" : "pointer",
-    opacity: disabled || loading ? 0.6 : 1,
-    transition: "all 0.2s ease",
-    whiteSpace: "nowrap",
-    width: fullWidth ? "100%" : undefined,
-    ...VARIANT_STYLES[variant],
-    ...SIZE_STYLES[size],
-    ...(isHovered && !disabled && !loading ? HOVER_STYLES[variant] : {}),
-    ...style,
-  };
+const baseStyles: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontWeight: 500,
+  borderRadius: "4px",
+  cursor: disabled || loading ? "not-allowed" : "pointer",
+  opacity: disabled || loading ? 0.6 : 1,
+  transition: "all 0.2s ease",
+  whiteSpace: "nowrap",
+  width: fullWidth ? "100%" : undefined,
+  ...VARIANT_STYLES[variant],
+  ...SIZE_STYLES[size],
+  ...(isHovered && !disabled && !loading ? HOVER_STYLES[variant] : {}),
+  ...(isActive && !disabled && !loading ? ACTIVE_STYLES[variant] : {}),
+  ...style,
+};
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (loading || disabled) return;
     onClick?.(e);
+  };
+
+  const handleMouseDown = () => {
+    if (!disabled && !loading) setIsActive(true);
+  };
+
+  const handleMouseUp = () => {
+    setIsActive(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setIsActive(false);
   };
 
   const content = loading ? (
@@ -182,6 +209,9 @@ export const Button: React.FC<ButtonProps> = ({
       className={`ui-button ui-button--${variant} ui-button--${size} ${className}`}
       style={baseStyles}
       onClick={handleClick}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
       disabled={disabled || loading}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -249,9 +279,9 @@ export const IconButton: React.FC<IconButtonProps> = ({
   ...rest
 }) => {
   const sizeMap: Record<ButtonSize, number> = {
-    small: 32,
-    medium: 40,
-    large: 48,
+    small: 40, // Minimum 40px touch target for mobile
+    medium: 48, // Recommended 48px touch target for mobile
+    large: 56, // Larger touch target
   };
 
   const iconSizeMap: Record<ButtonSize, number> = {
@@ -259,6 +289,9 @@ export const IconButton: React.FC<IconButtonProps> = ({
     medium: 20,
     large: 24,
   };
+
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [isActive, setIsActive] = React.useState(false);
 
   const baseStyles: CSSProperties = {
     width: sizeMap[size],
@@ -268,7 +301,22 @@ export const IconButton: React.FC<IconButtonProps> = ({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
     ...style,
+  };
+
+  const handleMouseDown = () => {
+    setIsActive(true);
+  };
+
+  const handleMouseUp = () => {
+    setIsActive(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setIsActive(false);
   };
 
   return (
@@ -277,6 +325,14 @@ export const IconButton: React.FC<IconButtonProps> = ({
       size={size}
       className={`ui-icon-button ${className}`}
       style={baseStyles}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setIsActive(false);
+      }}
       {...rest}
     >
       <span style={{ fontSize: iconSizeMap[size], display: "flex" }}>{icon}</span>
