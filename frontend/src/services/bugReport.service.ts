@@ -32,11 +32,7 @@ export const bugReportService = {
     const formData = new FormData();
     formData.append('screenshot', file);
     
-    const response = await apiClient.post<{ url: string }>('/bug-reports/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await apiClient.post<{ url: string }>('/bug-reports/upload', formData);
     return response.data.url;
   },
 

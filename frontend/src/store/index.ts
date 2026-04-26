@@ -11,6 +11,7 @@ import referralReducer from './slices/referralSlice';
 import affiliateReducer from './slices/affiliateSlice';
 import bugReportReducer from './slices/bugReportSlice';
 import notificationReducer from './slices/notificationSlice';
+import { baseApi } from './api/baseApi';
 
 export const store = configureStore({
   reducer: {
@@ -25,6 +26,7 @@ export const store = configureStore({
     affiliate: affiliateReducer,
     bugReport: bugReportReducer,
     notification: notificationReducer,
+    api: baseApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

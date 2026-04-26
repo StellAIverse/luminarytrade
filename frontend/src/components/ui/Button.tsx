@@ -214,7 +214,6 @@ const baseStyles: CSSProperties = {
       onMouseLeave={handleMouseLeave}
       disabled={disabled || loading}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       data-testid={dataTestId || "button"}
       data-loading={loading}
       data-variant={variant}
@@ -329,10 +328,6 @@ export const IconButton: React.FC<IconButtonProps> = ({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setIsActive(false);
-      }}
       {...rest}
     >
       <span style={{ fontSize: iconSizeMap[size], display: "flex" }}>{icon}</span>

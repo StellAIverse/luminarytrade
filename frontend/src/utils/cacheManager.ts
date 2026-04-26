@@ -222,7 +222,9 @@ export class CacheManager {
     // Implement LRU eviction if cache is full
     if (this.memoryCache.size >= maxSize) {
       const firstKey = this.memoryCache.keys().next().value;
-      this.memoryCache.delete(firstKey);
+      if (firstKey) {
+        this.memoryCache.delete(firstKey);
+      }
     }
 
     this.memoryCache.set(key, entry);

@@ -138,10 +138,7 @@ const App: React.FC = () => {
                    fontWeight: 600,
                    padding: { xs: '8px 12px', sm: '6px 12px' }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as string,
                    borderRadius: '4px',
-                   // Add touch feedback
-                   '&:active': {
-                     backgroundColor: 'rgba(255,255,255,0.1)',
-                   },
+                   transition: 'background-color 0.2s',
                  }}
                >
                  {link.label}

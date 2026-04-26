@@ -6,12 +6,15 @@
  * and real-time WebSocket data updates.
  */
 
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo, useCallback, memo } from 'react';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useRealtimeDashboard } from '../hooks/useRealtimeDashboard';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
+import { FraudHeatmapCell, TimeWindow } from '../types/dashboard.types';
 import { FraudHeatmapCell } from '../types/dashboard.types';
 import TimeWindowSelector from './dashboard/TimeWindowSelector';
 import CreditScoreTrendChart from './dashboard/CreditScoreTrendChart';
@@ -25,6 +28,8 @@ import LiveAlertFeed from './dashboard/LiveAlertFeed';
 import WaitlistStatus from './WaitlistStatus';
 import { printDashboard } from '../utils/exportUtils';
 import { useResponsive } from '../hooks/useResponsive';
+import { createSuccessNotification } from '../contexts/NotificationContext';
+import { useTheme } from '@mui/material/styles';
 import { createSuccessNotification, useNotification } from '../contexts/NotificationContext';
 import { spacing } from '../styles/theme';
 
@@ -38,6 +43,9 @@ interface StatCardProps {
   trend?: string;
 }
 
+const StatCard: React.FC<StatCardProps> = ({ label, value, icon, color, trend }) => {
+  const theme = useTheme();
+  return (
 const StatCard: React.FC<StatCardProps> = memo(({ label, value, icon, color, trend }) => (
   <div
     data-testid={`stat-${label.toLowerCase().replace(/\s/g, '-')}`}
@@ -45,25 +53,25 @@ const StatCard: React.FC<StatCardProps> = memo(({ label, value, icon, color, tre
       background: 'linear-gradient(135deg, #1e1e2f 0%, #252540 100%)',
       borderRadius: 14,
       border: '1px solid rgba(255,255,255,0.06)',
-      padding: { xs: '16px 18px', sm: '20px 22px' }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as string,
+      padding: '16px 22px',
       display: 'flex',
       alignItems: 'center',
-      gap: { xs: 12, sm: 16 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
+      gap: 16,
       boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
       transition: 'transform 0.2s',
-      minHeight: { xs: 80, sm: 100 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
+      minHeight: 100,
     }}
   >
-<div style={{
-       width: { xs: 48, sm: 52 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
-       height: { xs: 48, sm: 52 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
-       borderRadius: 12,
-       background: `${color}22`,
-       display: 'flex',
-       alignItems: 'center',
-       justifyContent: 'center',
-       fontSize: { xs: 20, sm: 22 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
-     }}>
+    <div style={{
+      width: 52,
+      height: 52,
+      borderRadius: 12,
+      background: `${color}22`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 22,
+    }}>
       {icon}
     </div>
     <div>
@@ -80,6 +88,8 @@ const StatCard: React.FC<StatCardProps> = memo(({ label, value, icon, color, tre
       )}
     </div>
   </div>
+  );
+};
 ));
 
 StatCard.displayName = 'StatCard';
@@ -90,6 +100,25 @@ interface DrillDownModalProps {
   cell: FraudHeatmapCell;
   onClose: () => void;
 }
+ 
+const DrillDownModal: React.FC<DrillDownModalProps> = ({ cell, onClose }) => {
+  const theme = useTheme();
+  return (
+  <div
+    data-testid="drilldown-modal"
+    style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'rgba(0,0,0,0.6)',
+      backdropFilter: 'blur(4px)',
+      padding: '24px',
+    }}
+    onClick={onClose}
+  >
 
 const DrillDownModal: React.FC<DrillDownModalProps> = ({ cell, onClose }) => {
   const { t } = useTranslation();
@@ -98,6 +127,13 @@ const DrillDownModal: React.FC<DrillDownModalProps> = ({ cell, onClose }) => {
     <div
       data-testid="drilldown-modal"
       style={{
+        background: '#1e1e2f',
+        borderRadius: 16,
+        border: '1px solid rgba(255,255,255,0.1)',
+        padding: '28px',
+        minWidth: '340px',
+        maxWidth: '400px',
+        boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
         position: 'fixed',
         inset: 0,
         zIndex: 1000,
@@ -157,12 +193,16 @@ const DrillDownModal: React.FC<DrillDownModalProps> = ({ cell, onClose }) => {
         </div>
       </div>
     </div>
+  </div>
+);
   );
 };
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
+  const { user } = useAuth();
+  const theme = useTheme();
   const { t } = useTranslation();
   const { data, loading, error, timeWindow, setTimeWindow, refresh } = useDashboardData('7D');
   const { summaryPatch, liveScorePoints, liveFraudCells, hasLiveData, latestBonuses } = useRealtimeDashboard();
@@ -171,6 +211,8 @@ const Dashboard: React.FC = () => {
   const [drillDownCell, setDrillDownCell] = useState<FraudHeatmapCell | null>(null);
   const { isMobile, isTablet } = useResponsive();
 
+  const { addNotification } = useNotification();
+  const latestBonuses = useRealtimeDashboard().latestBonuses;
   const addNotification = useNotification();
 
   // Merge live realtime patches on top of snapshot data
@@ -282,11 +324,11 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Summary Statistics */}
-{mergedSummary && (
+      {mergedSummary && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, minmax(160px, 1fr))' : 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: { xs: spacing.md, sm: spacing.lg, md: spacing.xl }[theme.breakpoints.up('sm') ? (theme.breakpoints.up('md') ? 'md' : 'sm') : 'xs'] as unknown as number,
+          gap: spacing.lg,
           marginBottom: spacing.lg,
         }}>
           <StatCard
@@ -317,6 +359,13 @@ const Dashboard: React.FC = () => {
             color="#22d3ee"
           />
           <StatCard
+            label="Risk Score"
+            value={`${mergedSummary.riskScore}%`}
+            icon="⚡"
+            color="#ef4444"
+            trend={`σ ${data?.scoreStatistics.stddev ?? '—'}`}
+          />
+          <StatCard
             label={t('dashboard.stats.riskScore')}
             value={`${mergedSummary.riskScore}%`}
             icon="⚡"
@@ -335,6 +384,7 @@ const Dashboard: React.FC = () => {
 
       {/* Waitlist Status */}
       <div style={{ marginBottom: spacing.lg }}>
+        <WaitlistStatus userEmail={user?.email || undefined} />
         <WaitlistStatus userEmail={user?.email || ''} />
       </div>
 
@@ -345,6 +395,17 @@ const Dashboard: React.FC = () => {
           ? '1fr'
           : isTablet
             ? 'repeat(2, minmax(0, 1fr))'
+            : 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: spacing.lg,
+      }}>
+        <CreditScoreTrendChart
+          data={mergedScoreTrend}
+          loading={loading}
+        />
+        <TransactionVolumeChart
+          data={data?.transactionVolume ?? []}
+          loading={loading}
+        />
             : 'repeat(auto-fit, minmax(420px, 1fr))',
         gap: spacing.lg,
       }}>
@@ -377,12 +438,14 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Print styles */}
-      <style>{`
-        @media print {
-          body { background: #fff !important; color: #000 !important; }
-          button { display: none !important; }
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media print {
+            body { background: #fff !important; color: #000 !important; }
+            button { display: none !important; }
+          }
+        `
+      }} />
     </div>
   );
 };
