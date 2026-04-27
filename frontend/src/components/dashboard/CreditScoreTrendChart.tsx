@@ -5,7 +5,7 @@
  * reference threshold lines, and custom tooltips.
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import {
     ResponsiveContainer,
     AreaChart,
@@ -31,7 +31,7 @@ const RISK_THRESHOLDS = [
     { value: 550, label: 'Fair', color: '#f97316' },
 ];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = memo(({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     const point = payload[0].payload as CreditScoreTrendPoint;
     const riskColors: Record<string, string> = {
@@ -63,9 +63,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             </div>
         </div>
     );
-};
+});
 
-const CreditScoreTrendChart: React.FC<Props> = ({ data, loading }) => {
+CustomTooltip.displayName = 'CustomTooltip';
+
+const CreditScoreTrendChart: React.FC<Props> = memo(({ data, loading }) => {
     const csvColumns = [
         { key: 'date', label: 'Date' },
         { key: 'score', label: 'Score' },
@@ -137,6 +139,8 @@ const CreditScoreTrendChart: React.FC<Props> = ({ data, loading }) => {
             </ResponsiveContainer>
         </ChartCard>
     );
-};
+});
+
+CreditScoreTrendChart.displayName = 'CreditScoreTrendChart';
 
 export default CreditScoreTrendChart;

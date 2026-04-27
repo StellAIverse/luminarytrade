@@ -16,6 +16,9 @@ import {
     RiskDistributionSlice,
     DataStatistics,
     DashboardSummary,
+    TradingBonusPoint,
+    BonusBreakdown,
+    BonusHistoryItem,
 } from '../types/dashboard.types';
 
 // ─── Seeded PRNG (mulberry32) ─────────────────────────────────────────────────

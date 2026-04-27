@@ -1,0 +1,123 @@
+{
+    "nav": {
+        "dashboard": "Painel",
+        "creditScoring": "Pontuação de crédito",
+        "fraudDetection": "Detecção de fraude",
+        "wallet": "Carteira",
+        "transactions": "Transações",
+        "growthHub": "Hub de crescimento",
+        "responsiveExamples": "Exemplos responsivos",
+        "waitlist": "Lista de espera",
+        "login": "Entrar",
+        "signUp": "Cadastrar",
+        "logout": "Sair"
+    },
+    "common": {
+        "loading": "Carregando...",
+        "refresh": "Atualizar",
+        "print": "Imprimir",
+        "error": "Erro",
+        "back": "Voltar",
+        "submit": "Enviar",
+        "cancel": "Cancelar",
+        "close": "Fechar"
+    },
+    "dashboard": {
+        "title": "Painel de análises",
+        "subtitle": "Insights em tempo real e métricas de desempenho",
+        "stats": {
+            "totalTransactions": "Total de transações",
+            "avgCreditScore": "Pontuação de crédito média",
+            "fraudAlerts": "Alertas de fraude",
+            "activeAgents": "Agentes ativos",
+            "riskScore": "Pontuação de risco",
+            "tradingBonuses": "Bônus de negociação"
+        },
+        "fraud": {
+            "detail": "Detalhe de fraude",
+            "day": "Dia",
+            "hour": "Hora",
+            "alertCount": "Contagem de alertas",
+            "severity": "Gravidade"
+        },
+        "bonus": {
+            "notification": "+{{amount}} tokens do bônus {{type}} - {{description}}",
+            "title": "Novo bônus de negociação!"
+        }
+    },
+    "waitlist": {
+        "title": "Entrar na lista de espera",
+        "subtitle": "Seja o primeiro a saber quando lançarmos novos recursos de negociação com IA.",
+        "form": {
+            "fullName": "Nome completo",
+            "emailAddress": "Endereço de e-mail",
+            "joinButton": "Entrar na lista de espera",
+            "checkStatus": "Já entrou? Verifique seu status"
+        },
+        "states": {
+            "verifying": "Verificando seu e-mail...",
+            "verified": {
+                "alert": "Seu e-mail foi verificado! Você está agora na lista de espera.",
+                "body": "Notificaremos quando for sua vez de acessar o LuminaryTrade.",
+                "backButton": "Voltar para a lista de espera"
+            },
+            "pending": {
+                "alert": "E-mail de confirmação enviado!",
+                "title": "Verifique seu e-mail",
+                "body": "Enviamos um link de verificação para {{email}}.",
+                "checkStatusButton": "Verificar status",
+                "backButton": "Voltar ao formulário"
+            }
+        },
+        "notifications": {
+            "emailVerified": {
+                "title": "E-mail verificado",
+                "message": "Seu e-mail foi verificado com sucesso!"
+            },
+            "verificationFailed": {
+                "title": "Falha na verificação"
+            },
+            "joined": {
+                "title": "Lista de espera confirmada",
+                "message": "Você entrou na lista de espera com sucesso!"
+            },
+            "confirmationSent": {
+                "title": "E-mail de confirmação enviado",
+                "message": "Por favor verifique seu e-mail para confirmar seu lugar na lista."
+            },
+            "statusCheck": {
+                "title": "Status da lista de espera",
+                "message": "Status: {{status}}, E-mail verificado: {{verified}}"
+            },
+            "notFound": "E-mail não encontrado na lista de espera",
+            "joinFailed": "Não foi possível entrar na lista de espera",
+            "verifyFailed": "Não foi possível verificar o e-mail",
+            "error": {
+                "title": "Erro"
+            }
+        }
+    },
+    "auth": {
+        "login": {
+            "title": "Bem-vindo de volta",
+            "subtitle": "Entre com e-mail, carteira ou conta social.",
+            "noAccount": "Não tem conta?",
+            "signUpLink": "Cadastrar"
+        },
+        "signup": {
+            "title": "Crie sua conta",
+            "subtitle": "Cadastre-se para proteger sua sessão e acessar as ferramentas.",
+            "haveAccount": "Já tem uma conta?",
+            "signInLink": "Entrar"
+        }
+    },
+    "language": {
+        "switcher": "Idioma",
+        "en": "Inglês",
+        "fr": "Francês",
+        "ar": "Árabe",
+        "es": "Espanhol",
+        "pt": "Português",
+        "zh": "Chinês"
+    }
+}

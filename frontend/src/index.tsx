@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { CssBaseline, ThemeProvider } from '@mui/material';
+import { ThemeProvider } from './contexts/ThemeContext';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { WalletProvider } from './WalletContent';
@@ -9,6 +9,7 @@ import { WebSocketProvider } from './context/WebSocketContext';
 import { appTheme } from './styles/theme';
 import GlobalStyles from './components/GlobalStyles';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
+import './i18n/config';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -32,7 +33,4 @@ root.render(
   </React.StrictMode>
 );
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://cra.link/PWA
 serviceWorkerRegistration.register();

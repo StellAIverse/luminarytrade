@@ -215,7 +215,6 @@ const [isActive, setIsActive] = React.useState(false);
       onMouseLeave={handleMouseLeave}
       disabled={disabled || loading}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       data-testid={dataTestId || "button"}
       data-loading={loading}
       data-variant={variant}
@@ -307,6 +306,19 @@ export const IconButton: React.FC<IconButtonProps> = ({
      touchAction: "manipulation", // Eliminates 300ms tap delay on mobile
      ...style,
    };
+
+  const handleMouseDown = () => {
+    setIsActive(true);
+  };
+
+  const handleMouseUp = () => {
+    setIsActive(false);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setIsActive(false);
+  };
 
   const handleMouseDown = () => {
     setIsActive(true);

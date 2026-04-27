@@ -5,7 +5,7 @@
  * Includes brush for zoom/pan and crosshair cursor.
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import {
     ResponsiveContainer,
     ComposedChart,
@@ -33,7 +33,7 @@ const formatNumber = (n: number): string => {
     return n.toString();
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = memo(({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
 
     return (
@@ -67,9 +67,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             ))}
         </div>
     );
-};
+});
 
-const TransactionVolumeChart: React.FC<Props> = ({ data, loading }) => {
+CustomTooltip.displayName = 'CustomTooltip';
+
+const TransactionVolumeChart: React.FC<Props> = memo(({ data, loading }) => {
     const csvColumns = [
         { key: 'date', label: 'Date' },
         { key: 'count', label: 'Transaction Count' },
@@ -156,6 +158,8 @@ const TransactionVolumeChart: React.FC<Props> = ({ data, loading }) => {
             </ResponsiveContainer>
         </ChartCard>
     );
-};
+});
+
+TransactionVolumeChart.displayName = 'TransactionVolumeChart';
 
 export default TransactionVolumeChart;

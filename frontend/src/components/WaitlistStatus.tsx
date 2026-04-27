@@ -9,7 +9,7 @@ import {
   Alert,
 } from "@mui/material";
 import { waitlistService, WaitlistStatusResponse } from "../services/waitlist.service";
-import { useNotification } from "./contexts/NotificationContext";
+import { useNotification } from "../contexts/NotificationContext";
 
 interface WaitlistStatusProps {
   userEmail?: string;

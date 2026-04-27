@@ -5,7 +5,7 @@
  * Built with custom SVG for pixel-perfect control.
  */
 
-import React, { useState } from 'react';
+import React, { useState, memo, useMemo, useCallback } from 'react';
 import { FraudHeatmapCell } from '../../types/dashboard.types';
 import ChartCard from './ChartCard';
 
@@ -30,17 +30,27 @@ function getColor(count: number, maxCount: number): string {
     return '#6366f1';
 }
 
-const FraudRiskHeatmap: React.FC<Props> = ({ data, loading, onCellClick }) => {
+const FraudRiskHeatmap: React.FC<Props> = memo(({ data, loading, onCellClick }) => {
     const [hoveredCell, setHoveredCell] = useState<FraudHeatmapCell | null>(null);
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
-    const maxCount = Math.max(...data.map((c) => c.count), 1);
+    const maxCount = useMemo(() => Math.max(...data.map((c) => c.count), 1), [data]);
 
     // Show 6 hour labels: 0, 4, 8, 12, 16, 20
     const hourLabels = [0, 4, 8, 12, 16, 20];
 
     const svgWidth = LABEL_WIDTH + 24 * (CELL_SIZE + CELL_GAP);
     const svgHeight = HEADER_HEIGHT + 7 * (CELL_SIZE + CELL_GAP) + 10;
+
+    const handleCellMouseEnter = useCallback((cell: FraudHeatmapCell, e: React.MouseEvent) => {
+        setHoveredCell(cell);
+        const rect = (e.target as SVGRectElement).getBoundingClientRect();
+        setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
+    }, []);
+
+    const handleCellMouseLeave = useCallback(() => {
+        setHoveredCell(null);
+    }, []);
 
     const csvColumns = [
         { key: 'dayLabel', label: 'Day' },
@@ -112,12 +122,10 @@ const FraudRiskHeatmap: React.FC<Props> = ({ data, loading, onCellClick }) => {
                                         style={{ cursor: 'pointer', transition: 'opacity 0.15s' }}
                                         onMouseEnter={(e) => {
                                             if (cell) {
-                                                setHoveredCell(cell);
-                                                const rect = (e.target as SVGRectElement).getBoundingClientRect();
-                                                setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
+                                                handleCellMouseEnter(cell, e);
                                             }
                                         }}
-                                        onMouseLeave={() => setHoveredCell(null)}
+                                        onMouseLeave={handleCellMouseLeave}
                                         onClick={() => cell && onCellClick?.(cell)}
                                     />
                                 );
@@ -193,6 +201,8 @@ const FraudRiskHeatmap: React.FC<Props> = ({ data, loading, onCellClick }) => {
             </div>
         </ChartCard>
     );
-};
+});
+
+FraudRiskHeatmap.displayName = 'FraudRiskHeatmap';
 
 export default FraudRiskHeatmap;

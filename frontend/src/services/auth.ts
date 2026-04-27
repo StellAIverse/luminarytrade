@@ -31,6 +31,17 @@ export interface SignupResponse {
   verificationToken?: string;
 }
 
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface WalletLoginParams {
+  publicKey: string;
+  signature: string;
+  message: string;
+}
+
 export interface AuthError extends Error {
   status?: number;
 }
