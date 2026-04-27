@@ -133,6 +133,10 @@ const GasEstimateDisplay: React.FC<GasEstimateDisplayProps> = ({
               onClick={() => onPriorityChange(p)}
               size="small"
               clickable
+              sx={{
+                touchAction: "manipulation",
+                minHeight: { xs: 44, sm: 32 },
+              }}
             />
           ))}
         </Box>
@@ -528,11 +532,11 @@ export const TransactionSubmitForm: React.FC<TransactionSubmitFormProps> = ({
   return (
     <Card>
       <CardContent>
-        <Typography variant="h5" gutterBottom>
+        <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: "1.5rem", sm: "2rem" } }}>
           Send Transaction
         </Typography>
 
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+        <Stepper activeStep={activeStep} sx={{ mb: { xs: 3, sm: 4 } }}>
           {STEPS.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
@@ -548,10 +552,21 @@ export const TransactionSubmitForm: React.FC<TransactionSubmitFormProps> = ({
 
         {renderStepContent()}
 
-        <Box display="flex" justifyContent="space-between" mt={4}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          mt={4}
+          flexDirection={{ xs: "column", sm: "row" }}
+          gap={2}
+        >
           <Button
             disabled={activeStep === 0 || isSubmitting}
             onClick={handleBack}
+            sx={{
+              touchAction: "manipulation",
+              minHeight: { xs: 48, sm: 36 },
+              px: { xs: 4, sm: 3 },
+            }}
           >
             Back
           </Button>
@@ -561,6 +576,11 @@ export const TransactionSubmitForm: React.FC<TransactionSubmitFormProps> = ({
               variant="contained"
               onClick={handleNext}
               disabled={isEstimatingFees}
+              sx={{
+                touchAction: "manipulation",
+                minHeight: { xs: 48, sm: 36 },
+                px: { xs: 4, sm: 3 },
+              }}
             >
               Next
             </Button>
@@ -572,13 +592,26 @@ export const TransactionSubmitForm: React.FC<TransactionSubmitFormProps> = ({
               onClick={handleSubmit}
               disabled={isSubmitting}
               startIcon={isSubmitting ? <CircularProgress size={20} /> : <Send />}
+              sx={{
+                touchAction: "manipulation",
+                minHeight: { xs: 48, sm: 36 },
+                px: { xs: 4, sm: 3 },
+              }}
             >
               {isSubmitting ? "Submitting..." : "Submit Transaction"}
             </Button>
           )}
 
           {activeStep === 2 && (
-            <Button variant="contained" onClick={handleReset}>
+            <Button
+              variant="contained"
+              onClick={handleReset}
+              sx={{
+                touchAction: "manipulation",
+                minHeight: { xs: 48, sm: 36 },
+                px: { xs: 4, sm: 3 },
+              }}
+            >
               Send Another
             </Button>
           )}

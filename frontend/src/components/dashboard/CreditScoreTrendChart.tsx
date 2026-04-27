@@ -16,6 +16,7 @@ import {
     Tooltip,
     ReferenceLine,
 } from 'recharts';
+import { useTheme } from '@mui/material/styles';
 import { CreditScoreTrendPoint } from '../../types/dashboard.types';
 import ChartCard from './ChartCard';
 
@@ -72,6 +73,10 @@ const CreditScoreTrendChart: React.FC<Props> = memo(({ data, loading }) => {
         { key: 'score', label: 'Score' },
         { key: 'riskLevel', label: 'Risk Level' },
     ];
+    const theme = useTheme();
+    const isMobile = theme.breakpoints.down('sm');
+
+    const chartHeight = isMobile ? 200 : 280;
 
     return (
         <ChartCard
@@ -83,7 +88,7 @@ const CreditScoreTrendChart: React.FC<Props> = memo(({ data, loading }) => {
             exportFilename="credit-score-trend"
             data-testid="credit-score-trend-chart"
         >
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
                 <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                         <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">

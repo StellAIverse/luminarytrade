@@ -6,6 +6,8 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { WalletProvider } from './WalletContent';
 import { WebSocketProvider } from './context/WebSocketContext';
+import { appTheme } from './styles/theme';
+import GlobalStyles from './components/GlobalStyles';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import './i18n/config';
 
@@ -15,7 +17,9 @@ const root = ReactDOM.createRoot(
 
 root.render(
   <React.StrictMode>
-    <ThemeProvider>
+    <ThemeProvider theme={appTheme}>
+      <CssBaseline />
+      <GlobalStyles />
       <BrowserRouter>
         <WebSocketProvider>
           <AuthProvider>

@@ -105,16 +105,17 @@ export const Card: React.FC<CardProps> = ({
   "data-testid": dataTestId,
 }) => {
   const [isHovered, setIsHovered] = React.useState(false);
-  const baseStyles: CSSProperties = {
-    ...VARIANT_STYLES[variant],
-    borderRadius: BORDER_RADIUS_STYLES[borderRadius],
-    transition: hoverable ? "box-shadow 0.2s ease, transform 0.2s ease" : undefined,
-    cursor: onClick ? "pointer" : "default",
-    width: fullWidth ? "100%" : undefined,
-    maxWidth: maxWidth,
-    boxSizing: "border-box",
-    ...style,
-  };
+   const baseStyles: CSSProperties = {
+     ...VARIANT_STYLES[variant],
+     borderRadius: BORDER_RADIUS_STYLES[borderRadius],
+     transition: hoverable ? "box-shadow 0.2s ease, transform 0.2s ease" : undefined,
+     cursor: onClick ? "pointer" : "default",
+     width: fullWidth ? "100%" : undefined,
+     maxWidth: maxWidth,
+     boxSizing: "border-box",
+     touchAction: onClick ? "manipulation" : "auto", // Optimize touch on clickable cards
+     ...style,
+   };
   const hoverStyles: CSSProperties =
     hoverable && isHovered
       ? {

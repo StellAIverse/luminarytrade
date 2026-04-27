@@ -16,6 +16,7 @@ import {
     Legend,
     Tooltip,
 } from 'recharts';
+import { useTheme } from '@mui/material/styles';
 import { AgentPerformanceMetric } from '../../types/dashboard.types';
 import ChartCard from './ChartCard';
 
@@ -37,6 +38,9 @@ const METRIC_LABELS: Record<string, string> = {
 
 const AgentPerformanceChart: React.FC<Props> = memo(({ data, loading }) => {
     const [hiddenAgents, setHiddenAgents] = useState<Set<string>>(new Set());
+    const theme = useTheme();
+    const isMobile = theme.breakpoints.down('sm');
+    const chartHeight = isMobile ? 220 : 300;
 
     // Reshape data for Recharts radar: one entry per metric
     const radarData = React.useMemo(() => METRICS.map((metric) => {
@@ -75,7 +79,7 @@ const AgentPerformanceChart: React.FC<Props> = memo(({ data, loading }) => {
             exportFilename="agent-performance"
             data-testid="agent-performance-chart"
         >
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
                     <PolarGrid stroke="rgba(255,255,255,0.08)" />
                     <PolarAngleAxis

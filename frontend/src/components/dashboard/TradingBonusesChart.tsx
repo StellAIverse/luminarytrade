@@ -17,6 +17,7 @@ import {
     Bar,
     ComposedChart,
 } from "recharts";
+import { useTheme } from "@mui/material/styles";
 import { TradingBonusPoint, BonusBreakdown } from "../../types/dashboard.types";
 import ChartCard from "./ChartCard";
 
@@ -74,6 +75,10 @@ const TradingBonusesChart: React.FC<Props> = ({ data, breakdown, loading }) => {
         { key: "multiplier", label: "Multiplier" },
         { key: "tradeCount", label: "Trade Count" },
     ];
+    const theme = useTheme();
+    const isMobile = theme.breakpoints.down('sm');
+    const chartHeight = isMobile ? 220 : 280;
+
     return (
         <ChartCard
             title="Trading Bonuses"
@@ -84,7 +89,7 @@ const TradingBonusesChart: React.FC<Props> = ({ data, breakdown, loading }) => {
             exportFilename="trading-bonuses"
             data-testid="trading-bonuses-chart"
         >
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
                 <ComposedChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                     <defs>
                         <linearGradient id="bonusGradient" x1="0" y1="0" x2="0" y2="1">

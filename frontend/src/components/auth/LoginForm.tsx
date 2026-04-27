@@ -210,6 +210,7 @@ const primaryButtonStyle: React.CSSProperties = {
   fontSize: 16, // Increased font size
   cursor: "pointer",
   minHeight: "48px", // Minimum touch target
+  touchAction: "manipulation", // Eliminates 300ms tap delay
 };
 
 const secondaryButtonStyle: React.CSSProperties = {
@@ -221,6 +222,7 @@ const secondaryButtonStyle: React.CSSProperties = {
   fontWeight: 600,
   cursor: "pointer",
   minHeight: "48px", // Minimum touch target
+  touchAction: "manipulation", // Eliminates 300ms tap delay
 };
 
 const errorStyle: React.CSSProperties = {

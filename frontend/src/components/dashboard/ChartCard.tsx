@@ -6,6 +6,7 @@
  */
 
 import React, { useRef, useState, forwardRef, ReactNode } from 'react';
+import { useTheme, useMediaQuery } from '@mui/material';
 import { exportChartAsImage, exportDataAsCSV, exportDataAsJSON } from '../../utils/exportUtils';
 import { ChartExportFormat } from '../../types/dashboard.types';
 
@@ -36,6 +37,11 @@ const ChartCard = forwardRef<HTMLDivElement, ChartCardProps>(({
 }, ref) => {
     const chartRef = useRef<HTMLDivElement>(null);
     const [menuOpen, setMenuOpen] = useState(false);
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    // Responsive height: shorter on mobile
+    const chartHeight = isMobile ? 220 : height;
 
     const handleExport = async (format: ChartExportFormat) => {
         setMenuOpen(false);
@@ -73,7 +79,7 @@ const ChartCard = forwardRef<HTMLDivElement, ChartCardProps>(({
         >
             {/* Header */}
             <div style={{
-                padding: '16px 20px 12px',
+                padding: '14px 20px 12px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
@@ -81,7 +87,7 @@ const ChartCard = forwardRef<HTMLDivElement, ChartCardProps>(({
                 <div>
                     <h3 style={{
                         margin: 0,
-                        fontSize: 15,
+                        fontSize: isMobile ? 13 : 15,
                         fontWeight: 700,
                         color: '#e2e8f0',
                         letterSpacing: '0.02em',
@@ -91,7 +97,7 @@ const ChartCard = forwardRef<HTMLDivElement, ChartCardProps>(({
                     {subtitle && (
                         <p style={{
                             margin: '4px 0 0',
-                            fontSize: 12,
+                            fontSize: isMobile ? 11 : 12,
                             color: '#64748b',
                         }}>
                             {subtitle}
@@ -109,10 +115,12 @@ const ChartCard = forwardRef<HTMLDivElement, ChartCardProps>(({
                             border: '1px solid rgba(255,255,255,0.1)',
                             borderRadius: 8,
                             color: '#94a3b8',
-                            padding: '6px 10px',
-                            fontSize: 12,
+                            padding: '8px 12px',
+                            fontSize: isMobile ? 11 : 12,
                             cursor: 'pointer',
                             transition: 'all 0.2s',
+                            minHeight: isMobile ? 40 : 32,
+                            touchAction: 'manipulation',
                         }}
                         onMouseEnter={(e) => {
                             (e.target as HTMLButtonElement).style.background = 'rgba(255,255,255,0.12)';
@@ -159,13 +167,15 @@ const ChartCard = forwardRef<HTMLDivElement, ChartCardProps>(({
                                     }}
                                     onMouseLeave={(e) => {
                                         (e.target as HTMLButtonElement).style.background = 'transparent';
-                                    }}
-                                >
-                                    Export as {fmt}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                                }}
+                            >
+                                Export as {fmt}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
                 </div>
             </div>
 
@@ -174,8 +184,8 @@ const ChartCard = forwardRef<HTMLDivElement, ChartCardProps>(({
                 ref={chartRef}
                 style={{
                     padding: '0 16px 20px',
-                    height: typeof height === 'number' ? height : undefined,
-                    minHeight: typeof height === 'string' ? height : undefined,
+                    height: chartHeight,
+                    minHeight: isMobile ? 180 : 200,
                     position: 'relative',
                 }}
             >
@@ -185,7 +195,7 @@ const ChartCard = forwardRef<HTMLDivElement, ChartCardProps>(({
                         alignItems: 'center',
                         justifyContent: 'center',
                         height: '100%',
-                        minHeight: 200,
+                        minHeight: 150,
                     }}>
                         <div style={{
                             width: 36,

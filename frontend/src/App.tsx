@@ -1,10 +1,10 @@
 import React, { Suspense, lazy } from "react";
-import { Routes, Route, Link } from "react-router-dom";
-import { Box, Button, Stack, Typography, useTheme } from "@mui/material";
+import { Routes, Route } from "react-router-dom";
+import { Box } from "@mui/material";
 import { useAuth } from "./context/AuthContext";
 import AuthPage from "./components/auth/AuthPage";
-import { useResponsive } from "./hooks/useResponsive";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { ResponsiveNavigation } from "./components/ResponsiveNavigation";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import { useTranslation } from 'react-i18next';
 
@@ -25,157 +25,93 @@ const Waitlist = lazy(() => import("./components/Waitlist"));
 
 const Loading: React.FC = () => (
   <Box sx={{ py: 6, textAlign: "center" }}>
-    <Typography variant="body1">Loading...</Typography>
+    <Box component="span" sx={{ fontSize: "1.5rem" }}>⏳</Box>
+    <Box component="p" sx={{ mt: 1 }}>Loading...</Box>
   </Box>
 );
 
+const navLinks = [
+  {
+    to: "/",
+    label: "Dashboard",
+    prefetch: () => import("./components/Dashboard"),
+  },
+  {
+    to: "/scoring",
+    label: "Credit Scoring",
+    prefetch: () => import("./components/CreditScoring"),
+  },
+  {
+    to: "/fraud",
+    label: "Fraud Detection",
+    prefetch: () => import("./components/FraudDetection"),
+  },
+  {
+    to: "/wallet",
+    label: "Wallet",
+    prefetch: () => import("./components/WalletInterface"),
+  },
+  {
+    to: "/transactions",
+    label: "Transactions",
+    prefetch: () => import("./components/TransactionPage"),
+  },
+  {
+    to: "/growth",
+    label: "Growth Hub",
+    prefetch: () => import("./components/GrowthHub"),
+  },
+  {
+    to: "/referrals",
+    label: "Referrals",
+    prefetch: () => import("./components/ReferralDashboard"),
+  },
+  {
+    to: "/affiliate",
+    label: "Affiliate",
+    prefetch: () => import("./components/AffiliateDashboard"),
+  },
+  {
+    to: "/bug-reports",
+    label: "Bug Reports",
+    prefetch: () => import("./components/BugReportForm"),
+  },
+  {
+    to: "/notifications",
+    label: "Notifications",
+    prefetch: () => import("./components/NotificationCenter"),
+  },
+  {
+    to: "/responsive-examples",
+    label: "Responsive Examples",
+    prefetch: () => import("./components/examples/ResponsiveComponentExamples"),
+  },
+  {
+    to: "/waitlist",
+    label: "Waitlist",
+    prefetch: () => import("./components/Waitlist"),
+  },
+];
+
 const App: React.FC = () => {
   const { user, logout } = useAuth();
-  const theme = useTheme();
-  const { isMobile } = useResponsive();
   const { t } = useTranslation();
-
-  const navLinks = [
-    {
-      to: "/",
-      label: "Dashboard",
-      prefetch: () => import("./components/Dashboard"),
-    },
-    {
-      to: "/scoring",
-      label: "Credit Scoring",
-      prefetch: () => import("./components/CreditScoring"),
-    },
-    {
-      to: "/fraud",
-      label: "Fraud Detection",
-      prefetch: () => import("./components/FraudDetection"),
-    },
-    {
-      to: "/wallet",
-      label: "Wallet",
-      prefetch: () => import("./components/WalletInterface"),
-    },
-    {
-      to: "/transactions",
-      label: "Transactions",
-      prefetch: () => import("./components/TransactionPage"),
-    },
-    {
-      to: "/growth",
-      label: "Growth Hub",
-      prefetch: () => import("./components/GrowthHub"),
-    },
-    {
-      to: "/referrals",
-      label: "Referrals",
-      prefetch: () => import("./components/ReferralDashboard"),
-    },
-    {
-      to: "/affiliate",
-      label: "Affiliate",
-      prefetch: () => import("./components/AffiliateDashboard"),
-    },
-    {
-      to: "/bug-reports",
-      label: "Bug Reports",
-      prefetch: () => import("./components/BugReportForm"),
-    },
-    {
-      to: "/notifications",
-      label: "Notifications",
-      prefetch: () => import("./components/NotificationCenter"),
-    },
-    {
-      to: "/responsive-examples",
-      label: "Responsive Examples",
-      prefetch: () =>
-        import("./components/examples/ResponsiveComponentExamples"),
-    },
-    {
-      to: "/waitlist",
-      label: "Waitlist",
-      prefetch: () => import("./components/Waitlist"),
-    },
-  ];
 
   return (
     <Box sx={{ minHeight: "100vh", backgroundColor: "background.default" }}>
-<Box
-  component="nav"
-  sx={{
-    px: { xs: 2, sm: 3, md: 4 },
-    py: { xs: 2, sm: 3 }, // Increased vertical padding on mobile for touch
-    borderBottom: "1px solid",
-    borderColor: "divider",
-    backgroundColor: "background.paper",
-    position: "sticky",
-    top: 0,
-    zIndex: 10,
-    minHeight: { xs: 64, sm: 56 }, // Minimum height for touch targets
-  }}
->
-        <Stack
-          direction={isMobile ? "column" : "row"}
-          spacing={2}
-          alignItems={isMobile ? "flex-start" : "center"}
-        >
-          <Stack
-            direction={isMobile ? "column" : "row"}
-            spacing={2}
-            alignItems={isMobile ? "flex-start" : "center"}
-            flexWrap="wrap"
-          >
-{navLinks.map((link) => (
-               <Link
-                 key={link.to}
-                 to={link.to}
-                 onMouseEnter={link.prefetch}
-                 style={{
-                   color: theme.palette.primary.main,
-                   textDecoration: "none",
-                   fontSize: theme.typography.body2.fontSize as string,
-                   fontWeight: 600,
-                   padding: { xs: '8px 12px', sm: '6px 12px' }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as string,
-                   borderRadius: '4px',
-                   transition: 'background-color 0.2s',
-                 }}
-               >
-                 {link.label}
-               </Link>
-             ))}
-          </Stack>
-
-          <Box
-            sx={{
-              marginLeft: isMobile ? 0 : "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-            }}
-          >
-            <LanguageSwitcher compact={isMobile} />
-            {user ? (
-              <Button
-                variant="outlined"
-                onClick={() => void logout()}
-                size="small"
-              >
-                {t("nav.logout")}
-              </Button>
-            ) : (
-              <Stack direction="row" spacing={1.5}>
-                <Link to="/login">{t("nav.login")}</Link>
-                <Link to="/signup">{t("nav.signUp")}</Link>
-              </Stack>
-            )}
-          </Box>
-        </Stack>
-      </Box>
+      <ResponsiveNavigation
+        navLinks={navLinks}
+        user={user}
+        onLogout={logout}
+      />
 
       <Box
         component="main"
-        sx={{ px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, sm: 3 } }}
+        sx={{
+          px: { xs: 2, sm: 3, md: 4 },
+          py: { xs: 2, sm: 3 },
+          paddingTop: { xs: 3, sm: 4, md: 5 },
+        }}
       >
         <Suspense fallback={<Loading />}>
           <Routes>

@@ -35,6 +35,8 @@ import {
   DialogActions,
   Grid,
   InputAdornment,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Refresh,
@@ -113,10 +115,12 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
 }) => {
   const hasFilters =
     filter.status || filter.type || filter.searchQuery || filter.startDate || filter.endDate;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   return (
-    <Box mb={3}>
-      <Grid container spacing={2} alignItems="center">
+    <Box mb={isMobile ? 2 : 3}>
+      <Grid container spacing={isMobile ? 1.5 : 2} alignItems="center">
         {/* Search */}
         <Grid item xs={12} md={4}>
           <TextField
@@ -134,13 +138,21 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 </InputAdornment>
               ),
             }}
+            sx={{
+              "& input": {
+                fontSize: { xs: "16px", sm: "14px" },
+                paddingY: { xs: 1.5, sm: 1 },
+              },
+            }}
           />
         </Grid>
 
         {/* Status Filter */}
         <Grid item xs={6} md={2}>
           <FormControl fullWidth size="small">
-            <InputLabel>Status</InputLabel>
+            <InputLabel sx={{ fontSize: { xs: "0.875rem", sm: "0.75rem" } }}>
+              Status
+            </InputLabel>
             <Select
               value={filter.status || ""}
               label="Status"
@@ -150,6 +162,12 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                   status: (e.target.value as TransactionStatus) || undefined,
                 })
               }
+              sx={{
+                fontSize: { xs: "16px", sm: "14px" },
+                "& .MuiSelect-select": {
+                  paddingY: { xs: 1.5, sm: 1 },
+                },
+              }}
             >
               <MenuItem value="">All</MenuItem>
               <MenuItem value="pending">Pending</MenuItem>
@@ -162,7 +180,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         {/* Type Filter */}
         <Grid item xs={6} md={2}>
           <FormControl fullWidth size="small">
-            <InputLabel>Type</InputLabel>
+            <InputLabel sx={{ fontSize: { xs: "0.875rem", sm: "0.75rem" } }}>
+              Type
+            </InputLabel>
             <Select
               value={filter.type || ""}
               label="Type"
@@ -172,6 +192,12 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                   type: (e.target.value as TransactionType) || undefined,
                 })
               }
+              sx={{
+                fontSize: { xs: "16px", sm: "14px" },
+                "& .MuiSelect-select": {
+                  paddingY: { xs: 1.5, sm: 1 },
+                },
+              }}
             >
               <MenuItem value="">All</MenuItem>
               {TRANSACTION_TYPES.map((type) => (
@@ -191,6 +217,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               size="small"
               startIcon={<Clear />}
               onClick={onClearFilters}
+              sx={{
+                minHeight: { xs: 44, sm: 32 },
+                touchAction: "manipulation",
+              }}
             >
               Clear Filters
             </Button>
@@ -207,6 +237,7 @@ interface TransactionTableProps {
   truncateHash: (hash: string, chars?: number) => string;
   truncateAddress: (address: string, chars?: number) => string;
   formatType: (type: string) => string;
+  isMobile: boolean;
 }
 
 const TransactionTable: React.FC<TransactionTableProps> = ({
@@ -215,7 +246,192 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   truncateHash,
   truncateAddress,
   formatType,
+  isMobile,
 }) => {
+  const theme = useTheme();
+
+  // Mobile card view
+  if (isMobile) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+        }}
+      >
+        {transactions.map((tx) => {
+          const statusConfig = STATUS_CONFIG[tx.status];
+          return (
+            <Card
+              key={tx.txHash}
+              variant="outlined"
+              sx={{
+                borderRadius: 2,
+                borderColor: "divider",
+                bgcolor: "background.paper",
+                "&:active": {
+                  bgcolor: "action.selected",
+                },
+              }}
+            >
+              <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                {/* Header row with status and actions */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    mb: 1.5,
+                  }}
+                >
+                  <Chip
+                    size="small"
+                    color={statusConfig.color}
+                    icon={statusConfig.icon as React.ReactElement}
+                    label={statusConfig.label}
+                    sx={{ height: 24 }}
+                  />
+                  <Tooltip title="View Details">
+                    <IconButton
+                      size="small"
+                      onClick={() => onViewDetails(tx.txHash)}
+                      sx={{
+                        touchAction: "manipulation",
+                        minWidth: 40,
+                        minHeight: 40,
+                      }}
+                    >
+                      <Visibility fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+
+                {/* Transaction hash */}
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontSize: "0.75rem", mb: 0.5 }}
+                  >
+                    Hash
+                  </Typography>
+                  <Tooltip title={tx.txHash}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontFamily: "monospace",
+                        fontSize: "0.8rem",
+                        color: "primary.main",
+                      }}
+                    >
+                      {truncateHash(tx.txHash, 8)}
+                    </Typography>
+                  </Tooltip>
+                </Box>
+
+                {/* Two-column info grid */}
+                <Grid container spacing={1.5}>
+                  <Grid item xs={6}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.75rem" }}
+                    >
+                      Type
+                    </Typography>
+                    <Typography variant="body2">
+                      {formatType(tx.type)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.75rem" }}
+                    >
+                      Amount
+                    </Typography>
+                    <Typography variant="body2" align="right">
+                      {tx.amount || "-"}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.75rem" }}
+                    >
+                      From
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontFamily: "monospace",
+                        fontSize: "0.75rem",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {truncateAddress(tx.from)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.75rem" }}
+                    >
+                      To
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontFamily: "monospace",
+                        fontSize: "0.75rem",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {truncateAddress(tx.to)}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.75rem" }}
+                    >
+                      Fee
+                    </Typography>
+                    <Typography variant="body2">
+                      {tx.fees.formattedTotal}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.75rem" }}
+                    >
+                      Submitted
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: "0.75rem" }}>
+                      {formatDate(tx.submittedAt)}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </Box>
+    );
+  }
+
+  // Desktop table view
   return (
     <TableContainer>
       <Table size="small">
@@ -300,6 +516,9 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedTx, setSelectedTx] = useState<string | null>(null);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Load history on mount and when filter/page changes
   useEffect(() => {
@@ -406,16 +625,55 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({
               truncateHash={truncateHash}
               truncateAddress={truncateAddress}
               formatType={formatType}
+              isMobile={isMobile}
             />
-            <TablePagination
-              component="div"
-              count={history.totalCount}
-              page={page}
-              onPageChange={handleChangePage}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              rowsPerPageOptions={[5, 10, 20, 50]}
-            />
+            {!isMobile && (
+              <TablePagination
+                component="div"
+                count={history.totalCount}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[5, 10, 20, 50]}
+              />
+            )}
+            {isMobile && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: 2,
+                  pt: 2,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  Showing {Math.min(page * rowsPerPage + 1, history.totalCount)}-
+                  {Math.min((page + 1) * rowsPerPage, history.totalCount)} of{" "}
+                  {history.totalCount}
+                </Typography>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    size="small"
+                    onClick={() => setPage(page - 1)}
+                    disabled={page === 0}
+                    sx={{ touchAction: "manipulation", minHeight: 36 }}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={() => setPage(page + 1)}
+                    disabled={(page + 1) * rowsPerPage >= history.totalCount}
+                    sx={{ touchAction: "manipulation", minHeight: 36 }}
+                  >
+                    Next
+                  </Button>
+                </Stack>
+              </Box>
+            )}
           </>
         )}
       </CardContent>

@@ -53,25 +53,25 @@ const StatCard: React.FC<StatCardProps> = memo(({ label, value, icon, color, tre
       background: 'linear-gradient(135deg, #1e1e2f 0%, #252540 100%)',
       borderRadius: 14,
       border: '1px solid rgba(255,255,255,0.06)',
-      padding: '16px 22px',
+      padding: { xs: '16px 18px', sm: '20px 22px' }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as string,
       display: 'flex',
       alignItems: 'center',
-      gap: 16,
+      gap: { xs: 12, sm: 16 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
       boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
       transition: 'transform 0.2s',
-      minHeight: 100,
+      minHeight: { xs: 80, sm: 100 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
     }}
   >
-    <div style={{
-      width: 52,
-      height: 52,
-      borderRadius: 12,
-      background: `${color}22`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 22,
-    }}>
+<div style={{
+       width: { xs: 48, sm: 52 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
+       height: { xs: 48, sm: 52 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
+       borderRadius: 12,
+       background: `${color}22`,
+       display: 'flex',
+       alignItems: 'center',
+       justifyContent: 'center',
+       fontSize: { xs: 20, sm: 22 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
+     }}>
       {icon}
     </div>
     <div>
@@ -92,8 +92,6 @@ const StatCard: React.FC<StatCardProps> = memo(({ label, value, icon, color, tre
 };
 ));
 
-StatCard.displayName = 'StatCard';
-
 // ─── Drill-down Modal ─────────────────────────────────────────────────────────
  
 interface DrillDownModalProps {
@@ -101,9 +99,7 @@ interface DrillDownModalProps {
   onClose: () => void;
 }
  
-const DrillDownModal: React.FC<DrillDownModalProps> = ({ cell, onClose }) => {
-  const theme = useTheme();
-  return (
+const DrillDownModal: React.FC<DrillDownModalProps> = ({ cell, onClose }) => (
   <div
     data-testid="drilldown-modal"
     style={{
@@ -115,7 +111,7 @@ const DrillDownModal: React.FC<DrillDownModalProps> = ({ cell, onClose }) => {
       justifyContent: 'center',
       background: 'rgba(0,0,0,0.6)',
       backdropFilter: 'blur(4px)',
-      padding: '24px',
+      padding: { xs: '16px', sm: '24px' }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as string,
     }}
     onClick={onClose}
   >
@@ -128,11 +124,11 @@ const DrillDownModal: React.FC<DrillDownModalProps> = ({ cell, onClose }) => {
       data-testid="drilldown-modal"
       style={{
         background: '#1e1e2f',
-        borderRadius: 16,
+        borderRadius: { xs: 12, sm: 16 }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as number,
         border: '1px solid rgba(255,255,255,0.1)',
-        padding: '28px',
-        minWidth: '340px',
-        maxWidth: '400px',
+        padding: { xs: '20px', sm: '28px' }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as string,
+        minWidth: { xs: '80vw', sm: '340px' }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as string,
+        maxWidth: { xs: '90vw', sm: '400px' }[theme.breakpoints.up('sm') ? 'sm' : 'xs'] as unknown as string,
         boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
         position: 'fixed',
         inset: 0,
@@ -324,11 +320,11 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Summary Statistics */}
-      {mergedSummary && (
+{mergedSummary && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : isTablet ? 'repeat(2, minmax(160px, 1fr))' : 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: spacing.lg,
+          gap: { xs: spacing.md, sm: spacing.lg, md: spacing.xl }[theme.breakpoints.up('sm') ? (theme.breakpoints.up('md') ? 'md' : 'sm') : 'xs'] as unknown as number,
           marginBottom: spacing.lg,
         }}>
           <StatCard
@@ -358,13 +354,13 @@ const Dashboard: React.FC = () => {
             icon="🤖"
             color="#22d3ee"
           />
-          <StatCard
-            label="Risk Score"
-            value={`${mergedSummary.riskScore}%`}
-            icon="⚡"
-            color="#ef4444"
-            trend={`σ ${data?.scoreStatistics.stddev ?? '—'}`}
-          />
+        <StatCard
+          label="Risk Score"
+          value={`${mergedSummary.riskScore}%`}
+          icon="⚡"
+          color="#ef4444"
+          trend={`σ ${data?.scoreStatistics.stddev ?? '—'}`}
+        />
           <StatCard
             label={t('dashboard.stats.riskScore')}
             value={`${mergedSummary.riskScore}%`}
@@ -388,16 +384,16 @@ const Dashboard: React.FC = () => {
         <WaitlistStatus userEmail={user?.email || ''} />
       </div>
 
-      {/* Chart Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobile
-          ? '1fr'
-          : isTablet
-            ? 'repeat(2, minmax(0, 1fr))'
-            : 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: spacing.lg,
-      }}>
+{/* Chart Grid */}
+       <div style={{
+         display: 'grid',
+         gridTemplateColumns: isMobile
+           ? '1fr'
+           : isTablet
+             ? 'repeat(2, minmax(0, 1fr))'
+             : 'repeat(auto-fit, minmax(300px, 1fr))', // Reduced min width for better mobile support
+         gap: { xs: spacing.md, sm: spacing.lg, md: spacing.xl }[theme.breakpoints.up('sm') ? (theme.breakpoints.up('md') ? 'md' : 'sm') : 'xs'] as unknown as number,
+       }}>
         <CreditScoreTrendChart
           data={mergedScoreTrend}
           loading={loading}

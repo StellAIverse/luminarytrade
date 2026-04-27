@@ -18,6 +18,7 @@ import {
     Brush,
     Legend,
 } from 'recharts';
+import { useTheme } from '@mui/material/styles';
 import { TransactionVolumePoint } from '../../types/dashboard.types';
 import ChartCard from './ChartCard';
 
@@ -77,6 +78,9 @@ const TransactionVolumeChart: React.FC<Props> = memo(({ data, loading }) => {
         { key: 'volume', label: 'Volume ($)' },
         { key: 'avgAmount', label: 'Avg Amount ($)' },
     ];
+    const theme = useTheme();
+    const isMobile = theme.breakpoints.down('sm');
+    const chartHeight = isMobile ? 200 : 280;
 
     return (
         <ChartCard
@@ -88,7 +92,7 @@ const TransactionVolumeChart: React.FC<Props> = memo(({ data, loading }) => {
             exportFilename="transaction-volume"
             data-testid="transaction-volume-chart"
         >
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
                 <ComposedChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                     <defs>
                         <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
